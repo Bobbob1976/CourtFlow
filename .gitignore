@@ -49,3 +49,5 @@ backups/
 # Temporary files
 *.tmp
 temp/
+
+.vercel
