@@ -1,24 +1,10 @@
 "use client";
 
-import {
-    Radar,
-    RadarChart,
-    PolarGrid,
-    PolarAngleAxis,
-    PolarRadiusAxis,
-    ResponsiveContainer,
-} from "recharts";
 import Link from "next/link";
-import { LockOpenIcon } from "@heroicons/react/24/solid";
-
-import { format, isToday, isTomorrow } from "date-fns";
-// import { nl } from "date-fns/locale"; 
-
-import BookingCard from "@/components/booking/BookingCard";
-import VisualBookingCard from "./VisualBookingCard";
-import ClubVibeHeader from "./ClubVibeHeader";
-import MatchHistoryItem from "../matches/MatchHistoryItem";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import UserStatsWidget from "@/components/stats/UserStatsWidget";
+import WeatherWidget from "@/components/weather/WeatherWidget";
+import { QuickChallengeButton } from "@/components/social/ChallengeModal";
 
 interface DashboardClientProps {
     user: any;
@@ -29,22 +15,22 @@ interface DashboardClientProps {
 export default function DashboardClient({ user, stats, bookings }: DashboardClientProps) {
     const { t, locale } = useLanguage();
 
-    // Filter for upcoming bookings (exclude cancelled)
+    // Filter for upcoming bookings
     const upcomingBookings = bookings
         .filter(b => {
             if (!b.booking_date || !b.end_time) return false;
-            if (b.cancelled_at) return false; // Exclude cancelled bookings
+            if (b.cancelled_at) return false;
             const end = new Date(`${b.booking_date}T${b.end_time}`);
             return end >= new Date();
         })
         .slice(0, 3)
         .sort((a, b) => new Date(`${a.booking_date}T${a.start_time}`).getTime() - new Date(`${b.booking_date}T${b.start_time}`).getTime());
 
-    // Filter for past bookings (Recent Matches) (exclude cancelled)
+    // Filter for past bookings
     const pastBookings = bookings
         .filter(b => {
             if (!b.booking_date || !b.end_time) return false;
-            if (b.cancelled_at) return false; // Exclude cancelled bookings
+            if (b.cancelled_at) return false;
             const end = new Date(`${b.booking_date}T${b.end_time}`);
             return end < new Date();
         })
@@ -52,128 +38,206 @@ export default function DashboardClient({ user, stats, bookings }: DashboardClie
         .slice(0, 3);
 
     return (
-        <div className="max-w-md mx-auto p-6 space-y-8 font-sans pt-8">
-            {/* Header Section */}
-            <header className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">
-                        {t.dashboard.welcome}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">{user.user_metadata?.full_name?.split(' ')[0] || 'Sporter'}</span> 👋
-                    </h1>
-                    <p className="text-gray-400 text-sm">{t.dashboard.ready}</p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-0.5">
-                    <div className="w-full h-full rounded-full bg-[#121212] flex items-center justify-center text-sm font-bold text-white">
-                        {user.user_metadata?.full_name?.charAt(0) || 'U'}
-                    </div>
-                </div>
-            </header>
+        <div className="min-h-screen p-4 md:p-8">
+            <div className="max-w-7xl mx-auto space-y-8">
+                {/* Hero Header */}
+                <div className="relative">
+                    {/* Gradient Glow */}
+                    <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-gradient-to-br from-courtflow-orange/20 to-courtflow-green/20 rounded-full blur-3xl opacity-30 pointer-events-none"></div>
 
-            {/* Stats Overview */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl glass-card relative overflow-hidden group hover:bg-white/10 transition-all duration-300">
-                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12 text-blue-400">
-                            <path fillRule="evenodd" d="M2.25 13.5a8.25 8.25 0 0 1 8.25-8.25.75.75 0 0 1 .75.75v6.75H18a.75.75 0 0 1 .75.75 8.25 8.25 0 0 1-16.5 0Z" clipRule="evenodd" />
-                            <path fillRule="evenodd" d="M12.75 3a.75.75 0 0 1 .75-.75 8.25 8.25 0 0 1 8.25 8.25.75.75 0 0 1-.75.75h-7.5a.75.75 0 0 1-.75-.75V3Z" clipRule="evenodd" />
-                        </svg>
+                    <div className="relative glass-card rounded-3xl p-8 md:p-12 border-2 border-white/10">
+                        <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                                <p className="text-sm text-gray-400 mb-2">{t.dashboard.welcome}</p>
+                                <h1 className="text-4xl md:text-6xl font-black text-white mb-4">
+                                    Hey, <span className="text-transparent bg-clip-text bg-gradient-to-r from-courtflow-orange to-courtflow-green">
+                                        {user.user_metadata?.full_name?.split(' ')[0] || 'Sporter'}
+                                    </span>! 👋
+                                </h1>
+                                <p className="text-xl text-gray-300">{t.dashboard.ready}</p>
+                            </div>
+
+                            {/* User Avatar */}
+                            <div className="hidden md:block w-24 h-24 rounded-2xl bg-gradient-to-br from-courtflow-orange to-courtflow-green p-1">
+                                <div className="w-full h-full rounded-xl bg-slate-950 flex items-center justify-center text-4xl font-black text-white">
+                                    {user.user_metadata?.full_name?.charAt(0) || 'U'}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{t.dashboard.matches}</p>
-                    <h3 className="text-3xl font-bold text-white">12</h3>
-                    <p className="text-green-400 text-xs font-bold mt-2 flex items-center gap-1">
-                        <span>↑ 2</span>
-                        <span className="text-gray-500 font-normal">{t.dashboard.thisWeek}</span>
-                    </p>
                 </div>
-                <div className="p-4 rounded-2xl glass-card relative overflow-hidden group hover:bg-white/10 transition-all duration-300">
-                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12 text-purple-400">
-                            <path fillRule="evenodd" d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 0 0-.584.859 6.753 6.753 0 0 0 6.138 5.6 6.73 6.73 0 0 0 2.743 1.346A6.707 6.707 0 0 1 9.279 15H8.54c-1.036 0-1.875.84-1.875 1.875V19.5h-.75a2.25 2.25 0 0 0-2.25 2.25c0 .414.336.75.75.75h15a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-2.25-2.25h-.75v-2.625c0-1.036-.84-1.875-1.875-1.875h-.739a6.706 6.706 0 0 1-1.112-3.173 6.73 6.73 0 0 0 2.743-1.347 6.753 6.753 0 0 0 6.139-5.6.75.75 0 0 0-.585-.858 47.077 47.077 0 0 0-3.07-.543V2.62a.75.75 0 0 0-.658-.744 49.22 49.22 0 0 0-6.093-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 0 0-.657.744Zm0 2.629c0 1.196.312 2.32.857 3.294A5.266 5.266 0 0 1 3.16 5.337a45.6 45.6 0 0 1 2.006-.343v.256Zm13.5 0v-.256c.674.1 1.343.214 2.006.343a5.265 5.265 0 0 1-2.863 3.207 6.72 6.72 0 0 0 .857-3.294Z" clipRule="evenodd" />
-                        </svg>
+
+                {/* User Stats - NEW GAMIFICATION */}
+                <UserStatsWidget userId={user.id} />
+
+                {/* Two Column Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Main Content - Left 2 columns */}
+                    <div className="lg:col-span-2 space-y-8">
+                        {/* Challenge Button - NEW */}
+                        <QuickChallengeButton userId={user.id} clubId="demo-club-id" />
+
+                        {/* Upcoming Bookings */}
+                        <div>
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-black text-white">{t.dashboard.upcoming}</h2>
+                                    <p className="text-sm text-gray-400">Je aankomende sessies</p>
+                                </div>
+                                <Link
+                                    href="/demo-club"
+                                    className="px-4 py-2 rounded-xl bg-courtflow-green hover:bg-courtflow-green/80 text-white font-semibold transition-all duration-300 hover:scale-105"
+                                >
+                                    Boek Nu ⚡
+                                </Link>
+                            </div>
+
+                            {upcomingBookings.length > 0 ? (
+                                <div className="space-y-4">
+                                    {upcomingBookings.map((booking: any) => (
+                                        <Link
+                                            key={booking.id}
+                                            href={`/${booking.club?.subdomain || 'demo-club'}`}
+                                            className="block glass-card rounded-2xl p-6 border-2 border-white/10 hover:border-courtflow-green/50 card-hover"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                {/* Date Badge */}
+                                                <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-courtflow-orange to-courtflow-green p-0.5">
+                                                    <div className="w-full h-full rounded-lg bg-slate-950 flex flex-col items-center justify-center text-white">
+                                                        <span className="text-xs font-medium">
+                                                            {new Date(booking.booking_date).toLocaleDateString('nl-NL', { weekday: 'short' })}
+                                                        </span>
+                                                        <span className="text-xl font-black">
+                                                            {new Date(booking.booking_date).getDate()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Booking Info */}
+                                                <div className="flex-1">
+                                                    <h3 className="text-lg font-bold text-white mb-1">
+                                                        {booking.court?.name || 'Court'}
+                                                    </h3>
+                                                    <p className="text-sm text-gray-400">
+                                                        {booking.start_time} - {booking.end_time} • {booking.club?.name}
+                                                    </p>
+                                                </div>
+
+                                                {/* Arrow */}
+                                                <svg className="w-6 h-6 text-courtflow-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="glass-card rounded-2xl p-12 text-center border-2 border-dashed border-white/10">
+                                    <div className="text-6xl mb-4">📅</div>
+                                    <h3 className="text-xl font-bold text-white mb-2">Geen bookings</h3>
+                                    <p className="text-gray-400 mb-6">Tijd om je volgende sessie te plannen!</p>
+                                    <Link
+                                        href="/demo-club"
+                                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-courtflow-orange to-courtflow-green text-white font-bold hover:scale-105 transition-transform"
+                                    >
+                                        Boek Nu 🎾
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Recent Matches */}
+                        <div>
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-black text-white">{t.dashboard.recent}</h2>
+                                    <p className="text-sm text-gray-400">Je laatste gespeelde sessies</p>
+                                </div>
+                            </div>
+
+                            {pastBookings.length > 0 ? (
+                                <div className="space-y-3">
+                                    {pastBookings.map((booking: any) => (
+                                        <div
+                                            key={booking.id}
+                                            className="glass-card rounded-xl p-4 border border-white/10"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-2xl">
+                                                    🎾
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="font-semibold text-white">{booking.court?.name}</p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {new Date(booking.booking_date).toLocaleDateString('nl-NL')} • {booking.start_time}
+                                                    </p>
+                                                </div>
+                                                <div className="text-xs text-gray-400">
+                                                    Voltooid ✓
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="glass-card rounded-xl p-8 text-center border border-white/10">
+                                    <p className="text-gray-400">Nog geen recente matches</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{t.dashboard.rating}</p>
-                    <h3 className="text-3xl font-bold text-white">4.2</h3>
-                    <p className="text-purple-400 text-xs font-bold mt-2 flex items-center gap-1">
-                        <span>{t.dashboard.level} 4</span>
-                    </p>
+
+                    {/* Sidebar - Right 1 column */}
+                    <div className="space-y-6">
+                        {/* Weather Widget - NEW */}
+                        <WeatherWidget cityName="Amsterdam" />
+
+                        {/* Quick Stats */}
+                        <div className="glass-card rounded-2xl p-6 border-2 border-white/10">
+                            <h3 className="text-lg font-bold text-white mb-4">Snelle Stats 📊</h3>
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                                    <span className="text-gray-400">Total Bookings</span>
+                                    <span className="font-bold text-white">{bookings.length}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                                    <span className="text-gray-400">Komende</span>
+                                    <span className="font-bold text-courtflow-green">{upcomingBookings.length}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                                    <span className="text-gray-400">Afgelopen</span>
+                                    <span className="font-bold text-gray-400">{pastBookings.length}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="glass-card rounded-2xl p-6 border-2 border-white/10">
+                            <h3 className="text-lg font-bold text-white mb-4">Snelle Acties ⚡</h3>
+                            <div className="space-y-2">
+                                <Link
+                                    href="/wallet"
+                                    className="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-2xl">💰</span>
+                                        <span className="text-white group-hover:text-courtflow-green transition-colors">Wallet</span>
+                                    </div>
+                                </Link>
+                                <Link
+                                    href="/help"
+                                    className="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-2xl">❓</span>
+                                        <span className="text-white group-hover:text-courtflow-green transition-colors">Hulp</span>
+                                    </div>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            {/* Club Vibe Header */}
-            <ClubVibeHeader
-                clubName="PadelDam Amsterdam"
-                clubId="demo"
-                availableCourts={4}
-                totalCourts={8}
-            />
-
-            {/* Booking Timeline Preview */}
-            <section className="pt-4">
-                <div className="flex justify-between items-end mb-6">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                        <span className="w-1.5 h-8 bg-cyan-400 rounded-full shadow-[0_0_15px_#22d3ee]"></span>
-                        {t.dashboard.upcoming}
-                    </h3>
-                    <Link href="/bookings" className="text-xs font-bold text-gray-500 hover:text-white transition-colors uppercase tracking-wider">{t.dashboard.viewAll} &rarr;</Link>
-                </div>
-
-                <div className="space-y-6">
-                    {upcomingBookings.length > 0 ? upcomingBookings.map((booking) => (
-                        <VisualBookingCard key={booking.id} booking={booking} />
-                    )) : (
-                        <div className="p-8 text-center border border-dashed border-white/10 rounded-3xl bg-white/5">
-                            <p className="text-gray-400 font-medium">{locale === 'nl' ? 'Geen aankomende sessies' : 'No upcoming sessions'}</p>
-                            <Link href="/demo" className="inline-block mt-4 text-sm font-bold text-blue-400 hover:text-blue-300">{t.dashboard.directBook} &rarr;</Link>
-                        </div>
-                    )}
-                </div>
-            </section>
-
-            {/* Recent Matches (Game Engine) */}
-            <section className="pt-4 pb-12">
-                <div className="flex justify-between items-end mb-6">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                        <span className="w-1.5 h-8 bg-purple-400 rounded-full shadow-[0_0_15px_#a855f7]"></span>
-                        {t.dashboard.matches}
-                    </h3>
-                </div>
-
-                <div className="space-y-4">
-                    {pastBookings.length > 0 ? (
-                        pastBookings.map((booking, index) => {
-                            // Mock player data - in real app, fetch from matches table
-                            const mockPlayers = [
-                                { id: user.id, name: user.user_metadata?.full_name || (locale === 'nl' ? 'Jij' : 'You') },
-                                { id: '2', name: 'Jan de Vries' },
-                                { id: '3', name: 'Emma Bakker' },
-                                { id: '4', name: 'Lisa Jansen' }
-                            ];
-
-                            // Mock scores and results
-                            const mockScores = ['6-4 6-2', '7-5 6-3', '6-7 6-4 10-8', '6-2 6-1'];
-                            const mockResults: ('won' | 'lost' | 'draw')[] = ['won', 'lost', 'won', 'draw'];
-
-                            return (
-                                <MatchHistoryItem
-                                    key={booking.id}
-                                    match={{
-                                        id: booking.id,
-                                        date: `${booking.booking_date}T${booking.start_time}`,
-                                        court_name: booking.court.name,
-                                        club_name: booking.club.name,
-                                        score: mockScores[index % mockScores.length],
-                                        result: mockResults[index % mockResults.length],
-                                        players: mockPlayers
-                                    }}
-                                />
-                            );
-                        })
-                    ) : (
-                        <div className="p-8 text-center border border-dashed border-white/10 rounded-3xl bg-white/5">
-                            <p className="text-gray-400 font-medium">{locale === 'nl' ? 'Nog geen gespeelde matches' : 'No matches played yet'}</p>
-                        </div>
-                    )}
-                </div>
-            </section>
         </div>
     );
 }
