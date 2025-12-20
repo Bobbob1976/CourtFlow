@@ -10,9 +10,9 @@
     line-height: 1.625;
     -webkit-font-smoothing: antialiased;
     background-image:
-      radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.4), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.4), transparent 25%),
-      radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.4), transparent 25%);
+      radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.3), transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(20, 184, 166, 0.3), transparent 25%),
+      radial-gradient(circle at 50% 80%, rgba(52, 211, 153, 0.25), transparent 25%);
     background-attachment: fixed;
   }
 

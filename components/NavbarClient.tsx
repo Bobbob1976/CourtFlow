@@ -35,9 +35,16 @@ export default function NavbarClient({ user }: NavbarClientProps) {
             {/* Sidebar */}
             <div className={`fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-slate-950 z-50 shadow-2xl transition-transform duration-300 ease-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
-                    <span className="text-xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-                        COURTFLOW
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <img
+                            src="/logo.webp"
+                            alt="CourtFlow"
+                            className="h-8 w-auto object-contain"
+                        />
+                        <span className="text-xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+                            COURTFLOW
+                        </span>
+                    </div>
                     <button
                         onClick={() => setIsMenuOpen(false)}
                         className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
@@ -153,13 +160,13 @@ export default function NavbarClient({ user }: NavbarClientProps) {
         <>
             <nav className="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8">
                 <div className="flex lg:flex-1">
-                    <Link href="/" className="-m-1.5 p-1.5 group flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-white">
-                                <path fillRule="evenodd" d="M12 2a6 6 0 0 1 6 6c0 2.22-1.21 4.16-3 5.2V19a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-5.8c-1.79-1.04-3-2.98-3-5.2a6 6 0 0 1 6-6zM12 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM10 8a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM14 8a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" clipRule="evenodd" />
-                            </svg>
-                        </div>
-                        <span className="text-xl font-extrabold tracking-tight text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-cyan-300 transition-all">
+                    <Link href="/" className="-m-1.5 p-1.5 group flex items-center gap-3">
+                        <img
+                            src="/logo.webp"
+                            alt="CourtFlow Logo"
+                            className="h-10 w-auto object-contain group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <span className="text-xl font-extrabold tracking-tight text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-emerald-400 group-hover:to-teal-300 transition-all">
                             CourtFlow
                         </span>
                     </Link>
