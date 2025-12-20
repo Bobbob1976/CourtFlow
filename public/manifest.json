@@ -4,8 +4,8 @@
     "description": "The easiest way to book your court.",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#064e3b",
-    "theme_color": "#10b981",
+    "background_color": "#1e3a5f",
+    "theme_color": "#ff6b35",
     "orientation": "portrait",
     "icons": [
         {

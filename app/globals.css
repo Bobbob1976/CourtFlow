@@ -4,15 +4,15 @@
 
 @layer base {
   body {
-    background-color: #050505;
+    background-color: #0a0e1a;
     color: #d1d5db;
     font-weight: 500;
     line-height: 1.625;
     -webkit-font-smoothing: antialiased;
     background-image:
-      radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.3), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(20, 184, 166, 0.3), transparent 25%),
-      radial-gradient(circle at 50% 80%, rgba(52, 211, 153, 0.25), transparent 25%);
+      radial-gradient(circle at 15% 50%, rgba(30, 58, 95, 0.4), transparent 30%),
+      radial-gradient(circle at 85% 30%, rgba(0, 208, 132, 0.3), transparent 30%),
+      radial-gradient(circle at 50% 80%, rgba(255, 107, 53, 0.25), transparent 30%);
     background-attachment: fixed;
   }
 
@@ -31,6 +31,67 @@
 
   h2 {
     @apply text-2xl md:text-3xl;
+  }
+
+  /* GLOBAL BRAND COLOR OVERRIDES - Replace all blues with CourtFlow colors */
+
+  /* Text colors - blue to green */
+  .text-blue-400,
+  .text-blue-500,
+  .text-blue-600 {
+    color: #00d084 !important;
+    /* CourtFlow green */
+  }
+
+  .text-blue-300 {
+    color: #34d99b !important;
+    /* Lighter green */
+  }
+
+  /* Hover text colors */
+  .hover\:text-blue-300:hover,
+  .hover\:text-blue-400:hover,
+  .hover\:text-blue-500:hover {
+    color: #ff6b35 !important;
+    /* CourtFlow orange on hover */
+  }
+
+  /* Background colors - blue to green */
+  .bg-blue-500,
+  .bg-blue-600 {
+    background-color: #00d084 !important;
+  }
+
+  .bg-blue-400 {
+    background-color: #34d99b !important;
+  }
+
+  /* Hover backgrounds */
+  .hover\:bg-blue-500:hover,
+  .hover\:bg-blue-600:hover {
+    background-color: #00bb75 !important;
+    /* Darker green */
+  }
+
+  /* Border colors */
+  .border-blue-500,
+  .border-blue-400 {
+    border-color: #00d084 !important;
+  }
+
+  /* Ring colors (focus states) */
+  .ring-blue-500 {
+    --tw-ring-color: #00d084 !important;
+  }
+
+  /* Gradients - update from blue to orange-green */
+  .from-blue-600 {
+    --tw-gradient-from: #ff6b35 !important;
+  }
+
+  .to-cyan-400,
+  .to-blue-400 {
+    --tw-gradient-to: #00d084 !important;
   }
 }
 
@@ -55,6 +116,62 @@
   }
 
   .neon-text {
-    @apply text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300;
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-green-400;
+  }
+
+  /* Modern Card Hover Effect */
+  .card-hover {
+    @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-courtflow-green/20;
+  }
+
+  /* Subtle Glows */
+  .glow-green {
+    box-shadow: 0 0 20px rgba(0, 208, 132, 0.3);
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+  }
+
+  /* Animated Gradient Background */
+  .animated-gradient {
+    background: linear-gradient(-45deg,
+        rgba(30, 58, 95, 0.3),
+        rgba(0, 208, 132, 0.2),
+        rgba(255, 107, 53, 0.2),
+        rgba(30, 58, 95, 0.3));
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* Smooth entrance animation */
+  .fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

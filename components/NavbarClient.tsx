@@ -41,7 +41,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                             alt="CourtFlow"
                             className="h-8 w-auto object-contain"
                         />
-                        <span className="text-xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+                        <span className="text-xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-green-400">
                             COURTFLOW
                         </span>
                     </div>
@@ -166,7 +166,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                             alt="CourtFlow Logo"
                             className="h-10 w-auto object-contain group-hover:scale-105 transition-transform duration-200"
                         />
-                        <span className="text-xl font-extrabold tracking-tight text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-emerald-400 group-hover:to-teal-300 transition-all">
+                        <span className="text-xl font-extrabold tracking-tight text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-orange-500 group-hover:to-green-400 transition-all">
                             CourtFlow
                         </span>
                     </Link>
