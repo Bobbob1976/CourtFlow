@@ -54,6 +54,27 @@ export default function BookingPage() {
     }, 250);
   };
 
+  // Smart Share Functionality
+  const handleInvite = async () => {
+    const shareData = {
+      title: 'Potje Padel? 🎾',
+      text: `Ik heb een baan geboekt bij ${club?.name || 'de club'}! Doe je mee? 🏆`,
+      url: window.location.href // In a real app, this would be a specific match invite link
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+        alert('Uitnodiging gekopieerd! Plak het in WhatsApp. 📋');
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
+  };
+
+
   if (loading) return <div className="min-h-screen bg-[#0A1628] flex items-center justify-center text-white">Laden...</div>;
 
   // SUCCESS SCREEN (Dopamine!)
@@ -72,7 +93,9 @@ export default function BookingPage() {
         <div className="bg-white/5 p-6 rounded-2xl border border-white/10 mb-8 w-full max-w-sm">
           <div className="flex justify-between items-center mb-4">
             <span className="text-gray-400">Datum</span>
-            <span className="font-bold text-white">Vandaag, 14 mei</span>
+            <span className="font-bold text-white">
+              {selectedDate.getDate()} {selectedDate.toLocaleString('nl-NL', { month: 'short' })}
+            </span>
           </div>
           <div className="flex justify-between items-center mb-4">
             <span className="text-gray-400">Tijd</span>
@@ -85,7 +108,11 @@ export default function BookingPage() {
         </div>
 
         <div className="flex gap-4">
-          <button className="px-8 py-4 bg-[#C4FF0D] text-[#0A1628] font-bold rounded-xl hover:scale-105 transition-transform shadow-lg shadow-[#C4FF0D]/20">
+          <button
+            onClick={handleInvite}
+            className="px-8 py-4 bg-[#C4FF0D] text-[#0A1628] font-bold rounded-xl hover:scale-105 transition-transform shadow-lg shadow-[#C4FF0D]/20 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
             Invite Friends
           </button>
           <button onClick={() => router.push('/dashboard')} className="px-8 py-4 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-colors">
