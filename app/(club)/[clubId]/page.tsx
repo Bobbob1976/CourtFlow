@@ -59,7 +59,7 @@ export default function BookingPage() {
     const shareData = {
       title: 'Potje Padel? 🎾',
       text: `Ik heb een baan geboekt bij ${club?.name || 'de club'}! Doe je mee? 🏆`,
-      url: window.location.href // In a real app, this would be a specific match invite link
+      url: window.location.href
     };
 
     try {
@@ -77,6 +77,10 @@ export default function BookingPage() {
 
   if (loading) return <div className="min-h-screen bg-[#0A1628] flex items-center justify-center text-white">Laden...</div>;
 
+  // DYNAMIC STYLING UTILS
+  const primaryColor = club?.primary_color || '#C4FF0D';
+  const bannerUrl = club?.banner_url || 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?q=80&w=2670'; // Fallback Padel Court
+
   // SUCCESS SCREEN (Dopamine!)
   if (bookingSuccess) {
     return (
@@ -86,7 +90,7 @@ export default function BookingPage() {
         </div>
         <h1 className="text-5xl font-extrabold text-white mb-4">Gefeliciteerd!</h1>
         <p className="text-xl text-gray-300 mb-8 max-w-md">
-          Je training op <span className="text-[#C4FF0D] font-bold">Baan 3</span> staat vast.
+          Je training op <span style={{ color: primaryColor }} className="font-bold">Baan 3</span> staat vast.
           Tijd om te knallen!
         </p>
 
@@ -110,7 +114,8 @@ export default function BookingPage() {
         <div className="flex gap-4">
           <button
             onClick={handleInvite}
-            className="px-8 py-4 bg-[#C4FF0D] text-[#0A1628] font-bold rounded-xl hover:scale-105 transition-transform shadow-lg shadow-[#C4FF0D]/20 flex items-center gap-2"
+            style={{ backgroundColor: primaryColor }}
+            className="px-8 py-4 text-[#0A1628] font-bold rounded-xl hover:scale-105 transition-transform shadow-lg flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
             Invite Friends
@@ -130,16 +135,29 @@ export default function BookingPage() {
       {/* Header Image */}
       <div className="relative h-[40vh]">
         <img
-          src="https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=2070&auto=format&fit=crop"
+          src={bannerUrl}
           className="w-full h-full object-cover opacity-60"
-          alt="Club"
+          alt="Club Banner"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0A1628] to-transparent" />
 
         <div className="absolute bottom-0 left-0 p-8 w-full max-w-7xl mx-auto">
-          <span className="px-3 py-1 bg-[#C4FF0D] text-[#0A1628] font-bold text-xs rounded uppercase mb-4 inline-block">
+          <span
+            style={{ backgroundColor: primaryColor }}
+            className="px-3 py-1 text-[#0A1628] font-bold text-xs rounded uppercase mb-4 inline-block"
+          >
             Premium Partner
           </span>
+
+          {/* LOGO */}
+          {club?.logo_url && (
+            <img
+              src={club.logo_url}
+              className="w-20 h-20 mb-4 rounded-xl object-contain bg-white/10 backdrop-blur border border-white/20 p-2"
+              alt="Logo"
+            />
+          )}
+
           <h1 className="text-5xl font-extrabold mb-2">{club?.name || 'Club Naam'}</h1>
           <p className="text-gray-300 flex items-center gap-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -161,8 +179,9 @@ export default function BookingPage() {
               <button
                 key={days}
                 onClick={() => setSelectedDate(date)}
+                style={isSelected ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                 className={`flex-shrink-0 w-20 h-24 rounded-2xl flex flex-col items-center justify-center border transition-all ${isSelected
-                    ? 'bg-[#C4FF0D] border-[#C4FF0D] text-[#0A1628] scale-105 shadow-[0_0_20px_rgba(196,255,13,0.3)]'
+                    ? 'text-[#0A1628] scale-105 shadow-[0_0_20px_rgba(196,255,13,0.3)]'
                     : 'bg-[#132338] border-white/5 text-gray-400 hover:border-white/20'
                   }`}
               >
@@ -178,17 +197,17 @@ export default function BookingPage() {
         </div>
 
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-          <span className="w-1 h-6 bg-[#C4FF0D] rounded-full"></span>
+          <span style={{ backgroundColor: primaryColor }} className="w-1 h-6 rounded-full"></span>
           Kies je baan
         </h2>
 
-        {/* COURT CARDS (New Reliable Images) */}
+        {/* COURT CARDS (Padel Images) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {[
-            { name: 'Center Court', type: 'Indoor', label: '🏆 Main Court', img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&auto=format&fit=crop&q=60' },
-            { name: 'Baan 2 (Panoramic)', type: 'Indoor', label: '🌟 Panoramic', img: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&auto=format&fit=crop&q=60' },
-            { name: 'Baan 3', type: 'Outdoor', label: '☀️ Outdoor', img: 'https://images.unsplash.com/photo-1599586120429-48285b6a7a81?w=800&auto=format&fit=crop&q=60' },
-            { name: 'Baan 4', type: 'Outdoor', label: '🎾 Standard', img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&auto=format&fit=crop&q=60' }
+            { name: 'Center Court', type: 'Indoor • WPT Blue', label: '🏆 Main Court', img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&auto=format&fit=crop&q=60' }, // Blue Court
+            { name: 'Baan 2 (Panoramic)', type: 'Indoor • Full Glass', label: '🌟 Panoramic', img: 'https://images.unsplash.com/photo-1599586120429-48285b6a7a81?w=800&auto=format&fit=crop&q=60' }, // Net closeup
+            { name: 'Baan 3', type: 'Outdoor', label: '☀️ Outdoor', img: 'https://images.unsplash.com/photo-1624653697960-aa228c2e633d?w=800&auto=format&fit=crop&q=60' }, // Action shot
+            { name: 'Baan 4', type: 'Indoor', label: '🎾 Standard', img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&auto=format&fit=crop&q=60' } // Blue Court again
           ].map((court, idx) => (
             <div key={idx} className="bg-[#132338] rounded-3xl overflow-hidden border border-white/5 group hover:border-[#C4FF0D]/50 transition-colors shadow-lg">
               {/* Court Image - Crucial for Product Visualization */}
@@ -213,7 +232,7 @@ export default function BookingPage() {
                     <p className="text-sm text-gray-400">{court.type} • WPT Gras • LED verlichting</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-[#C4FF0D] font-bold text-lg">€30,00</div>
+                    <div style={{ color: primaryColor }} className="font-bold text-lg">€30,00</div>
                     <div className="text-xs text-gray-500">per 90 min</div>
                   </div>
                 </div>
@@ -224,7 +243,16 @@ export default function BookingPage() {
                     <button
                       key={time}
                       onClick={handleSuccess}
-                      className="py-2 rounded-xl bg-[#0A1628] border border-white/10 text-sm font-bold hover:bg-[#C4FF0D] hover:text-[#0A1628] hover:border-[#C4FF0D] transition-all hover:scale-105"
+                      className="py-2 rounded-xl bg-[#0A1628] border border-white/10 text-sm font-bold transition-all hover:scale-105 hover:text-[#0A1628]"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = primaryColor;
+                        e.currentTarget.style.borderColor = primaryColor;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#0A1628';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                        e.currentTarget.style.color = '#fff';
+                      }}
                     >
                       {time}
                     </button>

@@ -37,13 +37,27 @@ export async function submitMatchScore(prevState: ScoreState, formData: FormData
         return { error: "Missing required fields" };
     }
 
+    // 0. Fetch Booking to get Club ID
+    const { data: booking, error: bookingCheckError } = await supabase
+        .from("bookings")
+        .select("club_id")
+        .eq("id", bookingId)
+        .single();
+
+    if (bookingCheckError || !booking) {
+        console.error("Booking lookup failed:", bookingCheckError);
+        return { error: "Booking not found" };
+    }
+
     // 1. Create Match Record
     const { data: match, error: matchError } = await supabase
         .from("matches")
         .insert({
             booking_id: bookingId,
+            club_id: booking.club_id, // CRITICAL FIX
             submitted_by: user.id,
             status: "pending_validation",
+            score_status: "pending", // Added commonly used field
             date: new Date().toISOString(),
         })
         .select()

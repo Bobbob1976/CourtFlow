@@ -160,8 +160,9 @@ export default function HumanDashboard() {
                             {nextSession ? (
                                 <div className="relative overflow-hidden rounded-3xl border border-white/10 group cursor-pointer">
                                     <img
-                                        src="https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=2070&auto=format&fit=crop"
-                                        className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-700"
+                                        src="https://images.unsplash.com/photo-1624653697960-aa228c2e633d?q=80&w=2670" // Real Padel Action
+                                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
+                                        alt="Padel Match"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-r from-[#0A1628] via-[#0A1628]/80 to-transparent" />
 
