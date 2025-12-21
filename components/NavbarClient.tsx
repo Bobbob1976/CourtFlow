@@ -197,6 +197,9 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                             <Link href="/dashboard" className="text-sm font-medium leading-6 text-gray-400 hover:text-white transition-colors py-2 px-3 rounded-lg hover:bg-white/5">
                                 {t.nav.dashboard}
                             </Link>
+                            <Link href="/profile" className="text-sm font-medium leading-6 text-gray-400 hover:text-white transition-colors py-2 px-3 rounded-lg hover:bg-white/5">
+                                Profiel
+                            </Link>
                             <Link href="/wallet" className="text-sm font-medium leading-6 text-gray-400 hover:text-white transition-colors py-2 px-3 rounded-lg hover:bg-white/5">
                                 {t.nav.wallet}
                             </Link>

@@ -43,11 +43,12 @@ echo --- MAINTENANCE ---
 echo  [19] Health Check
 echo  [20] View Recent Logs
 echo  [21] Deep Clean
+echo  [22] Start Stripe Listener
 echo.
 echo  [0] Exit
 echo.
 echo ================================================
-set /p choice="Kies een optie (0-21): "
+set /p choice="Kies een optie (0-22): "
 
 if "%choice%"=="1" goto :start_dev
 if "%choice%"=="2" goto :build_test
@@ -70,6 +71,7 @@ if "%choice%"=="18" goto :update_deps
 if "%choice%"=="19" goto :health_check
 if "%choice%"=="20" goto :view_logs
 if "%choice%"=="21" goto :deep_clean
+if "%choice%"=="22" goto :start_stripe
 if "%choice%"=="0" goto :end
 
 echo Ongeldige keuze!
@@ -394,6 +396,18 @@ call npm install --legacy-peer-deps
 echo.
 echo DEEP CLEAN COMPLETE!
 pause
+goto :menu
+
+:start_stripe
+cls
+echo.
+echo Starting Stripe Webhook Listener...
+echo ================================================
+echo Forwarding to: http://localhost:3000/api/stripe/webhook
+echo.
+echo NOTE: You need the Stripe CLI installed for this to work.
+echo.
+start "Stripe Listener" cmd /k "stripe listen --forward-to localhost:3000/api/stripe/webhook"
 goto :menu
 
 :end

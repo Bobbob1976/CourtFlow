@@ -19,27 +19,46 @@ export default function WeatherWidget({ cityName = "Amsterdam" }: { cityName?: s
     useEffect(() => {
         async function fetchWeather() {
             try {
-                // TODO: Add your OpenWeatherMap API key to env variables
-                const API_KEY = process.env.NEXT_PUBLIC_WEATHER_API_KEY || "demo";
+                // Use Open-Meteo API (FREE, no API key needed!)
+                // Get coordinates for city (Amsterdam default)
+                const lat = 52.3676;
+                const lon = 4.9041;
+
                 const response = await fetch(
-                    `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${API_KEY}&units=metric`
+                    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Europe/Amsterdam`
                 );
 
                 if (response.ok) {
                     const data = await response.json();
+                    const current = data.current;
+
+                    // Convert weather code to description
+                    const weatherDescriptions: { [key: number]: string } = {
+                        0: "clear sky",
+                        1: "mainly clear",
+                        2: "partly cloudy",
+                        3: "overcast",
+                        45: "foggy",
+                        48: "foggy",
+                        51: "light drizzle",
+                        61: "light rain",
+                        71: "light snow",
+                        95: "thunderstorm"
+                    };
+
                     setWeather({
-                        temp: Math.round(data.main.temp),
-                        description: data.weather[0].description,
-                        icon: data.weather[0].icon,
-                        feels_like: Math.round(data.main.feels_like),
-                        humidity: data.main.humidity,
-                        wind_speed: Math.round(data.wind.speed * 3.6), // m/s to km/h
-                        rain_probability: data.clouds?.all || 0,
+                        temp: Math.round(current.temperature_2m),
+                        description: weatherDescriptions[current.weather_code] || "cloudy",
+                        icon: current.weather_code < 2 ? "01d" : "02d", // Simple icon mapping
+                        feels_like: Math.round(current.temperature_2m - 2), // Approximation for feels_like
+                        humidity: current.relative_humidity_2m,
+                        wind_speed: Math.round(current.wind_speed_10m),
+                        rain_probability: current.weather_code > 50 ? 80 : 20, // Approximation for rain probability
                     });
                 }
             } catch (error) {
                 console.error("Weather fetch failed:", error);
-                // Use mock data for demo
+                // Fallback to nice weather
                 setWeather({
                     temp: 18,
                     description: "partly cloudy",

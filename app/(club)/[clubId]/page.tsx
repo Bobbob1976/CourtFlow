@@ -1,118 +1,210 @@
-import { createClient } from "@/utils/supabase/server";
-import ClubBookingClient from "@/components/booking/ClubBookingClient";
+'use client';
 
-export default async function ClubPage({ params }: { params: { clubId: string } }) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+import { useEffect, useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { useParams, useRouter } from 'next/navigation';
+import confetti from 'canvas-confetti';
 
-  console.log("DEBUG: ClubPage params.clubId:", params.clubId);
+export default function BookingPage() {
+  const { clubId } = useParams(); // clubId is actually subdomain
+  const router = useRouter();
+  const [club, setClub] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // Check if params.clubId is a UUID
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.clubId);
-  console.log("DEBUG: isUuid:", isUuid);
+  // Succes state voor "Dopamine" effect
+  const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  let query = supabase.from("clubs").select("id, subdomain");
+  useEffect(() => {
+    async function loadData() {
+      const supabase = createClient();
 
-  if (isUuid) {
-    console.log("DEBUG: Querying by ID");
-    query = query.eq("id", params.clubId);
-  } else {
-    console.log("DEBUG: Querying by subdomain");
-    query = query.eq("subdomain", params.clubId);
-  }
+      // 1. Get Club
+      const { data: clubData } = await supabase
+        .from('clubs')
+        .select('*')
+        .eq('subdomain', clubId)
+        .single();
 
-  const { data: club, error } = await query.single();
-  console.log("DEBUG: Club query result:", club, error);
+      if (clubData) setClub(clubData);
+      setLoading(false);
+    }
+    loadData();
+  }, [clubId]);
 
-  if (!club) {
-    return null; // Layout handles "Club niet gevonden"
-  }
+  // Trigger Confetti
+  const handleSuccess = () => {
+    setBookingSuccess(true);
+    const duration = 3 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
-  return (
-    <div className="py-12 px-4 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Modern Hero Header with Glassmorphism & Images */}
-        <div className="mb-12 relative">
-          {/* Gradient Accent */}
-          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-gradient-to-br from-courtflow-orange/20 to-courtflow-green/20 rounded-full blur-3xl opacity-30 pointer-events-none"></div>
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-          {/* Glass Card Header with Images */}
-          <div className="relative glass-card rounded-3xl p-8 md:p-12 border-2 border-white/10 hover:border-courtflow-green/30 transition-all duration-500 overflow-hidden">
-            {/* Decorative Padel Images - Floating in background */}
-            <div className="absolute -right-20 -top-20 w-80 h-80 opacity-20 rotate-12 pointer-events-none animate-pulse">
-              <img
-                src="/images/padel/padel_doubles_green.png"
-                alt="Padel Action"
-                className="w-full h-full object-contain filter drop-shadow-2xl"
-              />
-            </div>
-            <div className="absolute -left-16 -bottom-16 w-64 h-64 opacity-15 -rotate-12 pointer-events-none hidden md:block">
-              <img
-                src="/images/padel/padel_action_orange.png"
-                alt="Padel Serve"
-                className="w-full h-full object-contain filter drop-shadow-2xl"
-              />
-            </div>
+    const interval: any = setInterval(function () {
+      const timeLeft = animationEnd - Date.now();
 
-            {/* Content */}
-            <div className="relative z-10">
-              {/* Small badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-courtflow-green/10 border border-courtflow-green/20 rounded-full mb-6">
-                <span className="w-2 h-2 bg-courtflow-green rounded-full animate-pulse"></span>
-                <span className="text-sm font-medium text-courtflow-green">Live beschikbaarheid</span>
-              </div>
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
 
-              <h1 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">
-                Boek je&nbsp;
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-courtflow-orange via-courtflow-green to-courtflow-green">
-                  baan
-                </span>
-              </h1>
-              <p className="text-xl text-gray-300 font-light max-w-2xl">
-                Kies een tijdstip en speel. Direct online reserveren en betalen.
-              </p>
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
+  };
 
-              {/* Action Preview Images - Mobile friendly */}
-              <div className="flex gap-4 mt-8 overflow-x-auto no-scrollbar pb-4">
-                <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 border-courtflow-green/30 hover:border-courtflow-orange/50 transition-all duration-300 hover:scale-105 cursor-pointer">
-                  <img
-                    src="/images/padel/padel_smash_yellow.png"
-                    alt="Padel Smash"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 border-courtflow-green/30 hover:border-courtflow-orange/50 transition-all duration-300 hover:scale-105 cursor-pointer">
-                  <img
-                    src="/images/padel/padel_celebration_cyan.png"
-                    alt="Padel Celebration"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 border-courtflow-green/30 hover:border-courtflow-orange/50 transition-all duration-300 hover:scale-105 cursor-pointer">
-                  <img
-                    src="/images/padel/padel_serve_action.png"
-                    alt="Padel Serve"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 border-courtflow-green/30 hover:border-courtflow-orange/50 transition-all duration-300 hover:scale-105 cursor-pointer hidden sm:block">
-                  <img
-                    src="/images/padel/padel_volley_purple.png"
-                    alt="Padel Volley"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-            </div>
+  if (loading) return <div className="min-h-screen bg-[#0A1628] flex items-center justify-center text-white">Laden...</div>;
+
+  // SUCCESS SCREEN (Dopamine!)
+  if (bookingSuccess) {
+    return (
+      <div className="min-h-screen bg-[#0A1628] flex flex-col items-center justify-center text-center px-4 relative overflow-hidden">
+        <div className="relative z-10 animate-bounce mb-8">
+          <span className="text-8xl">🏆</span>
+        </div>
+        <h1 className="text-5xl font-extrabold text-white mb-4">Gefeliciteerd!</h1>
+        <p className="text-xl text-gray-300 mb-8 max-w-md">
+          Je training op <span className="text-[#C4FF0D] font-bold">Baan 3</span> staat vast.
+          Tijd om te knallen!
+        </p>
+
+        <div className="bg-white/5 p-6 rounded-2xl border border-white/10 mb-8 w-full max-w-sm">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-gray-400">Datum</span>
+            <span className="font-bold text-white">Vandaag, 14 mei</span>
+          </div>
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-gray-400">Tijd</span>
+            <span className="font-bold text-white">19:00 - 20:30</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">Locatie</span>
+            <span className="font-bold text-white">{club?.name || 'Club'}</span>
           </div>
         </div>
 
-        <ClubBookingClient
-          clubId={club.id}
-          userId={user?.id || ""}
+        <div className="flex gap-4">
+          <button className="px-8 py-4 bg-[#C4FF0D] text-[#0A1628] font-bold rounded-xl hover:scale-105 transition-transform shadow-lg shadow-[#C4FF0D]/20">
+            Invite Friends
+          </button>
+          <button onClick={() => router.push('/dashboard')} className="px-8 py-4 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-colors">
+            Naar Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // BOOKING SCREEN
+  return (
+    <div className="min-h-screen bg-[#0A1628] text-white font-sans pb-20">
+
+      {/* Header Image */}
+      <div className="relative h-[40vh]">
+        <img
+          src="https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=2070&auto=format&fit=crop"
+          className="w-full h-full object-cover opacity-60"
+          alt="Club"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0A1628] to-transparent" />
+
+        <div className="absolute bottom-0 left-0 p-8 w-full max-w-7xl mx-auto">
+          <span className="px-3 py-1 bg-[#C4FF0D] text-[#0A1628] font-bold text-xs rounded uppercase mb-4 inline-block">
+            Premium Partner
+          </span>
+          <h1 className="text-5xl font-extrabold mb-2">{club?.name || 'Club Naam'}</h1>
+          <p className="text-gray-300 flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            Amsterdam, Nederland • 8 Padel Banen
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 mt-8">
+
+        {/* Filter / Date Picker */}
+        <div className="flex gap-4 overflow-x-auto pb-4 mb-8 no-scrollbar">
+          {[0, 1, 2, 3, 4, 5, 6].map(days => {
+            const date = new Date();
+            date.setDate(date.getDate() + days);
+            const isSelected = selectedDate.getDate() === date.getDate();
+
+            return (
+              <button
+                key={days}
+                onClick={() => setSelectedDate(date)}
+                className={`flex-shrink-0 w-20 h-24 rounded-2xl flex flex-col items-center justify-center border transition-all ${isSelected
+                    ? 'bg-[#C4FF0D] border-[#C4FF0D] text-[#0A1628] scale-105 shadow-[0_0_20px_rgba(196,255,13,0.3)]'
+                    : 'bg-[#132338] border-white/5 text-gray-400 hover:border-white/20'
+                  }`}
+              >
+                <span className="text-xs font-bold uppercase mb-1">
+                  {date.toLocaleDateString('nl-NL', { weekday: 'short' })}
+                </span>
+                <span className="text-2xl font-bold">
+                  {date.getDate()}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+          <span className="w-1 h-6 bg-[#C4FF0D] rounded-full"></span>
+          Kies je baan
+        </h2>
+
+        {/* COURT CARDS (Correct Padel Images) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {[
+            { name: 'Center Court', type: 'Indoor', label: '🏆 Main Court', img: 'https://images.unsplash.com/photo-1626248677610-d027dc8bc19d?q=80&w=800&auto=format&fit=crop' },
+            { name: 'Baan 2 (Panoramic)', type: 'Indoor', label: '🌟 Panoramic', img: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=800&auto=format&fit=crop' },
+            { name: 'Baan 3', type: 'Outdoor', label: '☀️ Outdoor', img: 'https://images.unsplash.com/photo-1599586120429-48285b6a7a81?q=80&w=800&auto=format&fit=crop' },
+            { name: 'Baan 4', type: 'Outdoor', label: '🎾 Standard', img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?q=80&w=800&auto=format&fit=crop' }
+          ].map((court, idx) => (
+            <div key={idx} className="bg-[#132338] rounded-3xl overflow-hidden border border-white/5 group hover:border-[#C4FF0D]/50 transition-colors shadow-lg">
+              {/* Court Image - Crucial for Product Visualization */}
+              <div className="h-48 relative overflow-hidden">
+                <img
+                  src={court.img}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  alt={court.name}
+                />
+                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10">
+                  {court.label}
+                </div>
+              </div>
+
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-1">{court.name}</h3>
+                    <p className="text-sm text-gray-400">{court.type} • WPT Gras • LED verlichting</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[#C4FF0D] font-bold text-lg">€30,00</div>
+                    <div className="text-xs text-gray-500">per 90 min</div>
+                  </div>
+                </div>
+
+                {/* Time Slots */}
+                <div className="grid grid-cols-4 gap-2">
+                  {['16:00', '17:30', '19:00', '20:30'].map(time => (
+                    <button
+                      key={time}
+                      onClick={handleSuccess}
+                      className="py-2 rounded-xl bg-[#0A1628] border border-white/10 text-sm font-bold hover:bg-[#C4FF0D] hover:text-[#0A1628] hover:border-[#C4FF0D] transition-all hover:scale-105"
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
       </div>
     </div>
   );
