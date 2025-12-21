@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { updateSettings } from '@/app/actions/admin-settings'; // We'll verify/create this action next
+import ImageUpload from './ImageUpload';
 
 // High quality Padel presets
 const BANNER_PRESETS = [
@@ -17,13 +18,28 @@ export default function SettingsForm({ club }: { club: any }) {
     const [logoUrl, setLogoUrl] = useState(club.logo_url || '');
     const [isSaving, setIsSaving] = useState(false);
 
+    // Helper functions for uploads
+    const handleBannerUpload = (url: string) => setBannerUrl(url);
+    const handleLogoUpload = (url: string) => setLogoUrl(url);
+
     return (
         <form action={async (formData) => {
             setIsSaving(true);
+            // Append the current state URLs to the form data because file inputs don't pass them automatically
+            // if we rely only on the 'name' attribute of hidden inputs
+            const data = new FormData();
+            // Copy existing form data
+            // actually, the action receives the form data causing a slight complexity if we use state.
+            // Simplest way: Add hidden inputs that hold the state values!
             await updateSettings(formData);
             setIsSaving(false);
             alert('Instellingen opgeslagen! ✅');
         }} className="space-y-8">
+
+            {/* Hidden Inputs to ensure state values are sent */}
+            <input type="hidden" name="banner_url" value={bannerUrl} />
+            <input type="hidden" name="logo_url" value={logoUrl} />
+            <input type="hidden" name="primary_color" value={themeColor} />
 
             {/* 1. Algemene Informatie */}
             <div className="bg-[#1a1a1a] p-8 rounded-3xl border border-white/10 shadow-xl">
@@ -72,7 +88,7 @@ export default function SettingsForm({ club }: { club: any }) {
                         <label className="text-xs font-bold uppercase text-gray-400">Banner Afbeelding</label>
 
                         {/* Preview Area */}
-                        <div className="relative h-48 w-full rounded-2xl overflow-hidden border-2 border-dashed border-white/10 bg-black/40 group">
+                        <div className="relative h-48 w-full rounded-2xl overflow-hidden border-2 border-dashed border-white/10 bg-black/40 group mb-4">
                             {bannerUrl ? (
                                 <>
                                     <img src={bannerUrl} className="w-full h-full object-cover" alt="Banner Preview" />
@@ -87,32 +103,26 @@ export default function SettingsForm({ club }: { club: any }) {
                             )}
                         </div>
 
-                        {/* Presets - De Gebruiksvriendelijke Oplossing */}
-                        <div>
-                            <p className="text-xs text-gray-400 mb-2">Kies een achtergrond of plak een eigen link:</p>
-                            <div className="grid grid-cols-4 gap-2 mb-4">
-                                {BANNER_PRESETS.map((preset) => (
-                                    <button
-                                        type="button"
-                                        key={preset.id}
-                                        onClick={() => setBannerUrl(preset.url)}
-                                        className={`relative h-16 rounded-lg overflow-hidden border-2 transition-all ${bannerUrl === preset.url ? 'border-[#C4FF0D] scale-105' : 'border-transparent opacity-60 hover:opacity-100'
-                                            }`}
-                                    >
-                                        <img src={preset.url} className="w-full h-full object-cover" alt={preset.name} />
-                                    </button>
-                                ))}
-                            </div>
+                        {/* Presets Grid */}
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                            {BANNER_PRESETS.map((preset) => (
+                                <button
+                                    type="button"
+                                    key={preset.id}
+                                    onClick={() => setBannerUrl(preset.url)}
+                                    className={`relative h-16 rounded-lg overflow-hidden border-2 transition-all ${bannerUrl === preset.url ? 'border-[#C4FF0D] scale-105' : 'border-transparent opacity-60 hover:opacity-100'
+                                        }`}
+                                >
+                                    <img src={preset.url} className="w-full h-full object-cover" alt={preset.name} />
+                                </button>
+                            ))}
                         </div>
 
-                        {/* URL Input (Hidden logic but visible for custom) */}
-                        <input
-                            type="text" // Changed from url to text to be more forgiving
-                            name="banner_url"
-                            placeholder="Of plak hier je eigen afbeeldingslink..."
-                            value={bannerUrl}
-                            onChange={(e) => setBannerUrl(e.target.value)}
-                            className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm font-mono text-gray-300 focus:border-[#C4FF0D] outline-none"
+                        {/* REAL UPLOAD COMPONENT */}
+                        <ImageUpload
+                            bucket="club-assets"
+                            onUploadComplete={handleBannerUpload}
+                            label="Of upload je eigen banner"
                         />
                     </div>
 
@@ -121,7 +131,7 @@ export default function SettingsForm({ club }: { club: any }) {
                         <label className="text-xs font-bold uppercase text-gray-400">Logo</label>
                         <div className="flex gap-6 items-start">
                             {/* Logo Preview */}
-                            <div className="w-24 h-24 rounded-xl bg-black/40 border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                            <div className="w-32 h-32 rounded-xl bg-black/40 border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden shrink-0">
                                 {logoUrl ? (
                                     <img src={logoUrl} className="w-full h-full object-contain p-2" alt="Logo" />
                                 ) : (
@@ -130,17 +140,14 @@ export default function SettingsForm({ club }: { club: any }) {
                             </div>
 
                             <div className="flex-1 space-y-2">
-                                <input
-                                    type="text"
-                                    name="logo_url"
-                                    placeholder="https://jouw-site.nl/logo.png"
-                                    value={logoUrl}
-                                    onChange={(e) => setLogoUrl(e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm font-mono text-gray-300 focus:border-[#C4FF0D] outline-none"
+                                <ImageUpload
+                                    bucket="club-assets"
+                                    onUploadComplete={handleLogoUpload}
+                                    label="Klik om logo te uploaden"
                                 />
-                                <div className="text-xs text-gray-500 bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
-                                    ℹ️ <strong>Tip:</strong> Heb je al een website? Klik daar met de rechtermuisknop op je logo en kies <em>"Afbeeldingsadres kopiëren"</em>. Plak dat hierboven.
-                                </div>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Gebruik bij voorkeur een PNG met transparante achtergrond.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -151,7 +158,7 @@ export default function SettingsForm({ club }: { club: any }) {
                         <div className="flex items-center gap-4 bg-black/40 p-4 rounded-xl border border-white/5">
                             <input
                                 type="color"
-                                name="primary_color"
+                                // name="primary_color" -> handled by hidden input
                                 value={themeColor}
                                 onChange={(e) => setThemeColor(e.target.value)}
                                 className="w-12 h-12 rounded-lg border-none cursor-pointer bg-transparent"
