@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
+import ScoreSubmissionModal from '@/components/match/ScoreSubmissionModal';
 
 // Mock weather data (replace with real widget connection later)
 const WeatherBadge = () => (
@@ -19,6 +20,7 @@ export default function HumanDashboard() {
     const [user, setUser] = useState<any>(null);
     const [bookings, setBookings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedBookingForScore, setSelectedBookingForScore] = useState<any>(null);
 
     // Mock data for "Live" features
     const livePlayers = [
@@ -39,9 +41,9 @@ export default function HumanDashboard() {
                     .from('bookings')
                     .select('*, court:courts(name), club:clubs(name)')
                     .eq('user_id', user.id)
-                    .gte('booking_date', new Date().toISOString())
-                    .order('booking_date', { ascending: true })
-                    .limit(5);
+                    // We halen ALLES op, zodat we historie zien
+                    .order('booking_date', { ascending: false })
+                    .limit(10);
 
                 setBookings(bookingsData || []);
             }
@@ -50,8 +52,50 @@ export default function HumanDashboard() {
         load();
     }, []);
 
+    // Helper to check if a booking is in the past
+    const isPast = (booking: any) => {
+        const endDateTime = new Date(`${booking.booking_date}T${booking.start_time}`); // rough check
+        return endDateTime < new Date();
+    };
+
+    // Smart Invite Function
+    const handleInvite = async () => {
+        // In real app: generate unique link
+        const shareData = {
+            title: 'Gamenight! 🎾',
+            text: `Ik zoek nog een speler voor vanavond! Wie doet er mee?`,
+            url: window.location.origin
+        };
+
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+                alert('Uitnodiging gekopieerd naar klembord! 📋');
+            }
+        } catch (err) {
+            console.error('Error sharing:', err);
+        }
+    };
+
+    // Filter bookings into upcoming and past
+    const upcomingBookings = bookings.filter(b => !isPast(b)).reverse(); // Upcoming (soonest first)
+    const pastBookings = bookings.filter(b => isPast(b));
+
+    const nextSession = upcomingBookings[0];
+
     return (
         <div className="min-h-screen bg-[#0A1628] text-white relative font-sans">
+
+            {/* Modal for scoring */}
+            {selectedBookingForScore && (
+                <ScoreSubmissionModal
+                    isOpen={!!selectedBookingForScore}
+                    onClose={() => setSelectedBookingForScore(null)}
+                    booking={selectedBookingForScore}
+                />
+            )}
 
             {/* 1. IMMERSIVE ACHTERGROND - Fixed URL */}
             <div className="absolute inset-0 z-0 h-[50vh]">
@@ -113,7 +157,7 @@ export default function HumanDashboard() {
                         {/* Volgende Sessie Card (Groot) */}
                         <div>
                             <h3 className="text-gray-400 font-bold uppercase tracking-wider text-sm mb-4">Eerstvolgende Sessie</h3>
-                            {bookings.length > 0 ? (
+                            {nextSession ? (
                                 <div className="relative overflow-hidden rounded-3xl border border-white/10 group cursor-pointer">
                                     <img
                                         src="https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=2070&auto=format&fit=crop"
@@ -123,12 +167,12 @@ export default function HumanDashboard() {
 
                                     <div className="relative p-8">
                                         <span className="inline-block px-3 py-1 bg-white/10 backdrop-blur rounded-lg text-xs font-bold text-white mb-4">
-                                            VANDAAG
+                                            BINNENKORT
                                         </span>
-                                        <h3 className="text-3xl font-bold text-white mb-2">Padel Training</h3>
+                                        <h3 className="text-3xl font-bold text-white mb-2">{nextSession.club?.name || 'Padel Match'}</h3>
                                         <div className="text-[#C4FF0D] font-bold text-lg flex items-center gap-2 mb-6">
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                            14:00 - 15:30
+                                            {new Date(nextSession.booking_date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} • {nextSession.start_time.slice(0, 5)}
                                         </div>
 
                                         <div className="flex items-center gap-4">
@@ -136,45 +180,57 @@ export default function HumanDashboard() {
                                                 <div className="w-10 h-10 rounded-full bg-blue-500 border-2 border-[#0A1628]"></div>
                                                 <div className="w-10 h-10 rounded-full bg-purple-500 border-2 border-[#0A1628]"></div>
                                             </div>
-                                            <span className="text-sm text-gray-400">met Mark & Sarah</span>
+                                            <span className="text-sm text-gray-400">met Jou & Vrienden</span>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 text-center">
+                                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 text-center hover:bg-white/10 transition-colors">
                                     <p className="text-gray-400 mb-4">Geen sessies gepland</p>
                                     <Link href="/demo-club" className="text-[#C4FF0D] font-bold hover:underline">Plan je eerste sessie →</Link>
                                 </div>
                             )}
                         </div>
 
-                        {/* Agenda Lijst */}
+                        {/* Agenda Lijst (Mix van Upcoming en Past) */}
                         <div>
                             <h3 className="text-gray-400 font-bold uppercase tracking-wider text-sm mb-4">Mijn Agenda</h3>
                             <div className="bg-[#132338] rounded-3xl border border-white/5 overflow-hidden">
-                                {bookings.length > 0 ? bookings.slice(1).map((booking, i) => (
-                                    <div key={booking.id} className="p-4 border-b border-white/5 flex items-center hover:bg-white/5 transition-colors">
-                                        <div className="w-16 text-center border-r border-white/10 pr-4 mr-4">
-                                            <div className="text-xs text-gray-400 uppercase font-bold">
-                                                {new Date(booking.booking_date).toLocaleDateString('nl-NL', { weekday: 'short' })}
+                                {bookings.length > 0 ? bookings.map((booking, i) => {
+                                    const past = isPast(booking);
+                                    return (
+                                        <div key={booking.id} className="p-4 border-b border-white/5 flex items-center hover:bg-white/5 transition-colors">
+                                            <div className={`w-16 text-center border-r border-white/10 pr-4 mr-4 ${past ? 'opacity-50' : ''}`}>
+                                                <div className="text-xs text-gray-400 uppercase font-bold">
+                                                    {new Date(booking.booking_date).toLocaleDateString('nl-NL', { weekday: 'short' })}
+                                                </div>
+                                                <div className="text-xl font-bold text-white">
+                                                    {new Date(booking.booking_date).getDate()}
+                                                </div>
                                             </div>
-                                            <div className="text-xl font-bold text-white">
-                                                {new Date(booking.booking_date).getDate()}
+                                            <div className={past ? 'opacity-50' : ''}>
+                                                <div className="text-white font-bold">{booking.court?.name || 'Padel Court'}</div>
+                                                <div className="text-sm text-gray-400">{booking.start_time.slice(0, 5)} • 90 min</div>
+                                            </div>
+                                            <div className="ml-auto">
+                                                {past ? (
+                                                    <button
+                                                        onClick={() => setSelectedBookingForScore(booking)}
+                                                        className="px-3 py-1 rounded-full bg-[#C4FF0D]/10 text-xs font-bold text-[#C4FF0D] border border-[#C4FF0D]/20 hover:bg-[#C4FF0D] hover:text-black transition-colors"
+                                                    >
+                                                        Uitslag Invoeren
+                                                    </button>
+                                                ) : (
+                                                    <Link href={`/bookings/${booking.id}`} className="px-3 py-1 rounded-full bg-white/5 text-xs font-bold text-gray-300 hover:text-white">
+                                                        Details
+                                                    </Link>
+                                                )}
                                             </div>
                                         </div>
-                                        <div>
-                                            <div className="text-white font-bold">{booking.court?.name || 'Padel Court'}</div>
-                                            <div className="text-sm text-gray-400">{booking.start_time} • 90 min</div>
-                                        </div>
-                                        <div className="ml-auto">
-                                            <span className="px-3 py-1 rounded-full bg-white/5 text-xs font-bold text-gray-300">
-                                                Bekijk
-                                            </span>
-                                        </div>
-                                    </div>
-                                )) : (
+                                    )
+                                }) : (
                                     <div className="p-8 text-center text-gray-500 text-sm">
-                                        Geen verdere sessies gepland.
+                                        Nog geen boekingen gevonden.
                                     </div>
                                 )}
                             </div>
@@ -215,7 +271,8 @@ export default function HumanDashboard() {
                                 <div className="text-xs text-gray-400">€170,00</div>
                             </Link>
 
-                            <Link href="/challenges" className="bg-[#132338] p-4 rounded-2xl border border-white/5 hover:border-[#C4FF0D]/50 transition-colors group">
+                            {/* Link naar demo-club context voor challenges om "Club niet gevonden" te voorkomen */}
+                            <Link href="/demo-club/bookings" className="bg-[#132338] p-4 rounded-2xl border border-white/5 hover:border-[#C4FF0D]/50 transition-colors group">
                                 <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                 </div>
@@ -229,7 +286,11 @@ export default function HumanDashboard() {
                             <div className="relative z-10">
                                 <h3 className="font-bold text-white mb-2">Gamenight?</h3>
                                 <p className="text-blue-100 text-sm mb-4">Nodig je vrienden uit voor een potje.</p>
-                                <button className="px-4 py-2 bg-white text-blue-900 font-bold rounded-lg text-sm hover:bg-blue-50 transition-colors">
+                                <button
+                                    onClick={handleInvite}
+                                    className="px-4 py-2 bg-white text-blue-900 font-bold rounded-lg text-sm hover:bg-blue-50 transition-colors flex items-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                                     Nodig uit
                                 </button>
                             </div>
