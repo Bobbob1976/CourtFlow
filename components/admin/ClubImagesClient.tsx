@@ -3,10 +3,10 @@
 import { useState } from "react";
 import ImageUploadManager from "@/components/admin/ImageUploadManager";
 import ImageGallery from "@/components/admin/ImageGallery";
-import { Image as ImageIcon, Info } from "lucide-react";
+import { Image as ImageIcon, Info, Database } from "lucide-react";
 import { setClubBranding } from "@/app/actions/branding-actions";
 
-export default function ClubImagesClient({ clubId }: { clubId: string }) {
+export default function ClubImagesClient({ clubId, clubName }: { clubId: string, clubName: string }) {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const handleUploadComplete = () => {
@@ -28,26 +28,17 @@ export default function ClubImagesClient({ clubId }: { clubId: string }) {
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-12">
-                    <h1 className="text-5xl font-bold text-white mb-4 flex items-center gap-4">
+                    <div className="flex items-center gap-4 mb-4">
                         <ImageIcon className="w-12 h-12 text-blue-400" />
-                        Afbeeldingen Beheren
-                    </h1>
-                    <p className="text-xl text-gray-400">
-                        Upload en beheer je eigen court en club afbeeldingen.
-                    </p>
-                </div>
-
-                {/* Info Banner */}
-                <div className="mb-8 bg-blue-600/20 border border-blue-500/30 rounded-2xl p-6">
-                    <div className="flex items-start gap-4">
-                        <Info className="w-6 h-6 text-blue-400 flex-shrink-0 mt-1" />
                         <div>
-                            <h3 className="text-white font-bold mb-2">Hoe werkt het?</h3>
-                            <p className="text-gray-300 text-sm mb-2">
-                                Upload hier al je afbeeldingen. Gebruik daarna de knoppen
-                                <span className="inline-block px-2 py-0.5 mx-1 bg-[#C4FF0D] text-black text-xs font-bold rounded">Kies Banner</span>
-                                om ze direct live te zetten!
-                            </p>
+                            <h1 className="text-4xl font-bold text-white">
+                                Afbeeldingen Beheren
+                            </h1>
+                            {clubName && (
+                                <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm font-bold border border-blue-500/30">
+                                    {clubName}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -66,6 +57,25 @@ export default function ClubImagesClient({ clubId }: { clubId: string }) {
                     refreshTrigger={refreshTrigger}
                     onSetBranding={handleSetBranding}
                 />
+
+                {/* DEBUG SECTION */}
+                <div className="mt-12 pt-8 border-t border-white/5">
+                    <details className="group">
+                        <summary className="flex items-center gap-2 text-gray-500 cursor-pointer hover:text-white transition-colors text-sm font-mono">
+                            <Database className="w-4 h-4" />
+                            Toon Debug Informatie
+                        </summary>
+                        <div className="mt-4 p-4 bg-black/50 rounded-xl font-mono text-xs text-green-400 overflow-x-auto border border-green-500/20">
+                            <p><strong>Club ID (Context):</strong> {clubId}</p>
+                            <p><strong>Club Naam:</strong> {clubName}</p>
+                            <p><strong>Timestamp:</strong> {new Date().toISOString()}</p>
+                            <p className="text-gray-500 mt-2">
+                                Als je uploads niet ziet, check of 'Club ID' hierboven overeenkomt met de entry in je 'clubs' tabel in Supabase.
+                                Check ook de 'club_images' tabel of er rijen zijn met ditzelfde club_id.
+                            </p>
+                        </div>
+                    </details>
+                </div>
             </div>
         </div>
     );
