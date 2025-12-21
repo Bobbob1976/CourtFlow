@@ -72,10 +72,10 @@ export default async function HomePage() {
         )}
 
         <div className="mt-12 flex flex-col items-center gap-6">
-          <a href="/demo" className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-blue-600 font-pj rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 hover:bg-blue-500 hover:scale-105 shadow-[0_0_30px_rgba(37,99,235,0.5)]">
-            <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-cyan-400 to-blue-600 opacity-20 group-hover:opacity-40 blur-lg transition-opacity duration-200" />
-            <span>Ga naar Demo Club</span>
-            <svg className="w-5 h-5 ml-2 -mr-1 transition-transform group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <a href="/demo-club" className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-[#C4FF0D] text-[#0A1628] font-pj rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C4FF0D] hover:scale-105 shadow-[0_0_30px_rgba(196,255,13,0.5)]">
+            <div className="absolute -inset-3 rounded-full bg-[#C4FF0D] opacity-20 group-hover:opacity-40 blur-lg transition-opacity duration-200" />
+            <span className="text-[#0A1628]">Ga naar Demo Club</span>
+            <svg className="w-5 h-5 ml-2 -mr-1 transition-transform group-hover:translate-x-1 text-[#0A1628]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </a>

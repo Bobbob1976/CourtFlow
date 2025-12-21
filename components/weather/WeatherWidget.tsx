@@ -1,179 +1,70 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-interface WeatherData {
-    temp: number;
-    description: string;
-    icon: string;
-    feels_like: number;
-    humidity: number;
-    wind_speed: number;
-    rain_probability: number;
-}
+// Open-Meteo code mapping (WMO Weather interpretation codes)
+const getWeatherIcon = (code: number) => {
+    if (code === 0) return '☀️'; // Clear sky
+    if (code <= 3) return 'cloud'; // Partly cloudy
+    if (code <= 48) return '🌫️'; // Fog
+    if (code <= 55) return '🌧️'; // Drizzle
+    if (code <= 65) return '☔'; // Rain
+    if (code <= 77) return '🌨️'; // Snow grains
+    if (code <= 82) return '🌧️'; // Rain showers
+    if (code <= 86) return '❄️'; // Snow showers
+    if (code <= 99) return '⛈️'; // Thunderstorm
+    return '⛅';
+};
 
-export default function WeatherWidget({ cityName = "Amsterdam" }: { cityName?: string }) {
-    const [weather, setWeather] = useState<WeatherData | null>(null);
+const getWeatherDescription = (code: number) => {
+    if (code === 0) return 'Zonnig';
+    if (code <= 3) return 'Bewolkt';
+    if (code <= 48) return 'Mistig';
+    if (code <= 65) return 'Regenachtig';
+    if (code <= 77) return 'Sneeuw';
+    if (code <= 99) return 'Onweer';
+    return 'Wisselvallig';
+};
+
+export default function WeatherWidget() {
+    const [weather, setWeather] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Fetch weather for Amsterdam (default) using Open-Meteo (No API Key needed!)
         async function fetchWeather() {
             try {
-                // Use Open-Meteo API (FREE, no API key needed!)
-                // Get coordinates for city (Amsterdam default)
-                const lat = 52.3676;
-                const lon = 4.9041;
-
-                const response = await fetch(
-                    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Europe/Amsterdam`
+                const res = await fetch(
+                    'https://api.open-meteo.com/v1/forecast?latitude=52.37&longitude=4.89&current_weather=true'
                 );
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const current = data.current;
-
-                    // Convert weather code to description
-                    const weatherDescriptions: { [key: number]: string } = {
-                        0: "clear sky",
-                        1: "mainly clear",
-                        2: "partly cloudy",
-                        3: "overcast",
-                        45: "foggy",
-                        48: "foggy",
-                        51: "light drizzle",
-                        61: "light rain",
-                        71: "light snow",
-                        95: "thunderstorm"
-                    };
-
-                    setWeather({
-                        temp: Math.round(current.temperature_2m),
-                        description: weatherDescriptions[current.weather_code] || "cloudy",
-                        icon: current.weather_code < 2 ? "01d" : "02d", // Simple icon mapping
-                        feels_like: Math.round(current.temperature_2m - 2), // Approximation for feels_like
-                        humidity: current.relative_humidity_2m,
-                        wind_speed: Math.round(current.wind_speed_10m),
-                        rain_probability: current.weather_code > 50 ? 80 : 20, // Approximation for rain probability
-                    });
-                }
-            } catch (error) {
-                console.error("Weather fetch failed:", error);
-                // Fallback to nice weather
-                setWeather({
-                    temp: 18,
-                    description: "partly cloudy",
-                    icon: "02d",
-                    feels_like: 17,
-                    humidity: 65,
-                    wind_speed: 12,
-                    rain_probability: 20,
-                });
+                const data = await res.json();
+                setWeather(data.current_weather);
+            } catch (e) {
+                console.error("Weather fetch failed", e);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         }
-
         fetchWeather();
-    }, [cityName]);
+    }, []);
 
-    if (loading) {
-        return (
-            <div className="glass-card rounded-2xl p-6 animate-pulse">
-                <div className="h-6 bg-white/10 rounded w-1/3 mb-4"></div>
-                <div className="h-12 bg-white/10 rounded w-1/2"></div>
-            </div>
-        );
-    }
-
+    if (loading) return <div className="animate-pulse bg-white/5 w-24 h-10 rounded-full"></div>;
     if (!weather) return null;
 
-    const getWeatherEmoji = () => {
-        if (weather.icon.includes("01")) return "☀️";
-        if (weather.icon.includes("02")) return "⛅";
-        if (weather.icon.includes("03") || weather.icon.includes("04")) return "☁️";
-        if (weather.icon.includes("09") || weather.icon.includes("10")) return "🌧️";
-        if (weather.icon.includes("11")) return "⛈️";
-        if (weather.icon.includes("13")) return "❄️";
-        return "🌤️";
-    };
-
-    const getPlayability = () => {
-        if (weather.temp < 5) return { text: "Erg koud", color: "text-blue-400", emoji: "🥶" };
-        if (weather.temp < 10) return { text: "Koud", color: "text-blue-300", emoji: "😬" };
-        if (weather.rain_probability > 70) return { text: "Regenachtig", color: "text-blue-400", emoji: "☔" };
-        if (weather.wind_speed > 30) return { text: "Te winderig", color: "text-orange-400", emoji: "💨" };
-        if (weather.temp > 30) return { text: "Heet!", color: "text-orange-400", emoji: "🔥" };
-        if (weather.temp > 15 && weather.rain_probability < 30) return { text: "Perfect!", color: "text-courtflow-green", emoji: "✅" };
-        return { text: "Goed", color: "text-green-400", emoji: "👍" };
-    };
-
-    const playability = getPlayability();
+    const icon = getWeatherIcon(weather.weathercode);
+    const desc = getWeatherDescription(weather.weathercode);
 
     return (
-        <div className="glass-card rounded-2xl p-6 border-2 border-white/10 hover:border-courtflow-green/30 transition-all duration-300">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <div>
-                    <h3 className="text-sm font-medium text-gray-400">WEER VOORSPELLING</h3>
-                    <p className="text-xs text-gray-500">{cityName}</p>
-                </div>
-                <span className="text-4xl">{getWeatherEmoji()}</span>
+        <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg select-none hover:bg-black/50 transition-colors cursor-help" title={`Wind: ${weather.windspeed} km/h`}>
+            <span className="text-xl leading-none filter drop-shadow-md">{icon}</span>
+            <div className="flex flex-col">
+                <span className="text-sm font-bold text-white leading-none">
+                    {Math.round(weather.temperature)}°C
+                </span>
+                <span className="text-[10px] text-gray-300 leading-none uppercase tracking-wider font-medium mt-0.5">
+                    {desc}
+                </span>
             </div>
-
-            {/* Temperature */}
-            <div className="flex items-center gap-4 mb-4">
-                <div className="text-6xl font-black text-white">
-                    {weather.temp}°
-                </div>
-                <div className="flex-1">
-                    <p className="text-gray-300 capitalize mb-1">{weather.description}</p>
-                    <p className="text-xs text-gray-500">Voelt als {weather.feels_like}°</p>
-                </div>
-            </div>
-
-            {/* Playability Score */}
-            <div className={`mb-4 p-3 rounded-xl bg-white/5 border-2 ${playability.color === "text-courtflow-green" ? "border-courtflow-green/30" : "border-white/10"
-                }`}>
-                <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-400">Speelbaar:</span>
-                    <div className="flex items-center gap-2">
-                        <span className={`font-bold ${playability.color}`}>{playability.text}</span>
-                        <span className="text-xl">{playability.emoji}</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Details Grid */}
-            <div className="grid grid-cols-3 gap-3">
-                <div className="text-center p-3 rounded-lg bg-white/5">
-                    <div className="text-2xl mb-1">💧</div>
-                    <div className="text-xs text-gray-400">Vochtigheid</div>
-                    <div className="text-sm font-bold text-white">{weather.humidity}%</div>
-                </div>
-
-                <div className="text-center p-3 rounded-lg bg-white/5">
-                    <div className="text-2xl mb-1">💨</div>
-                    <div className="text-xs text-gray-400">Wind</div>
-                    <div className="text-sm font-bold text-white">{weather.wind_speed} km/u</div>
-                </div>
-
-                <div className="text-center p-3 rounded-lg bg-white/5">
-                    <div className="text-2xl mb-1">☔</div>
-                    <div className="text-xs text-gray-400">Regen</div>
-                    <div className="text-sm font-bold text-white">{weather.rain_probability}%</div>
-                </div>
-            </div>
-
-            {/* Best Time Suggestion */}
-            {playability.color === "text-courtflow-green" && (
-                <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-courtflow-green/10 to-courtflow-orange/10 border border-courtflow-green/20">
-                    <div className="flex items-center gap-2">
-                        <span className="text-lg">⚡</span>
-                        <span className="text-sm text-gray-300">
-                            <span className="font-semibold text-courtflow-green">Prime tijd!</span> Perfect om te spelen tussen 14:00-18:00
-                        </span>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
