@@ -155,21 +155,24 @@ export default function BookingPage() {
           Kies je baan
         </h2>
 
-        {/* COURT CARDS (Correct Padel Images) */}
+        {/* COURT CARDS (New Reliable Images) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {[
-            { name: 'Center Court', type: 'Indoor', label: '🏆 Main Court', img: 'https://images.unsplash.com/photo-1626248677610-d027dc8bc19d?q=80&w=800&auto=format&fit=crop' },
-            { name: 'Baan 2 (Panoramic)', type: 'Indoor', label: '🌟 Panoramic', img: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=800&auto=format&fit=crop' },
-            { name: 'Baan 3', type: 'Outdoor', label: '☀️ Outdoor', img: 'https://images.unsplash.com/photo-1599586120429-48285b6a7a81?q=80&w=800&auto=format&fit=crop' },
-            { name: 'Baan 4', type: 'Outdoor', label: '🎾 Standard', img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?q=80&w=800&auto=format&fit=crop' }
+            { name: 'Center Court', type: 'Indoor', label: '🏆 Main Court', img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&auto=format&fit=crop&q=60' },
+            { name: 'Baan 2 (Panoramic)', type: 'Indoor', label: '🌟 Panoramic', img: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&auto=format&fit=crop&q=60' },
+            { name: 'Baan 3', type: 'Outdoor', label: '☀️ Outdoor', img: 'https://images.unsplash.com/photo-1599586120429-48285b6a7a81?w=800&auto=format&fit=crop&q=60' },
+            { name: 'Baan 4', type: 'Outdoor', label: '🎾 Standard', img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&auto=format&fit=crop&q=60' }
           ].map((court, idx) => (
             <div key={idx} className="bg-[#132338] rounded-3xl overflow-hidden border border-white/5 group hover:border-[#C4FF0D]/50 transition-colors shadow-lg">
               {/* Court Image - Crucial for Product Visualization */}
-              <div className="h-48 relative overflow-hidden">
+              <div className="h-48 relative overflow-hidden bg-gray-800">
                 <img
                   src={court.img}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   alt={court.name}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&auto=format&fit=crop&q=60';
+                  }}
                 />
                 <div className="absolute top-4 right-4 bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10">
                   {court.label}

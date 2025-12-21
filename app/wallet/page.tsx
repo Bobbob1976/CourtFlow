@@ -22,7 +22,6 @@ async function topUpAction(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-      // Check if wallet exists
       const { data: existingWallet } = await supabase
         .from('club_wallets')
         .select('*')
@@ -31,14 +30,12 @@ async function topUpAction(formData: FormData) {
         .single();
 
       if (existingWallet) {
-        // Update existing wallet
         await supabase
           .from('club_wallets')
           .update({ balance: existingWallet.balance + amount })
           .eq('user_id', user.id)
           .eq('club_id', clubId);
       } else {
-        // Create new wallet
         await supabase
           .from('club_wallets')
           .insert({
@@ -56,8 +53,6 @@ async function topUpAction(formData: FormData) {
   // PRODUCTION MODE: Use Mollie
   const result = await createMollieTopUpPayment({ clubId, amount });
 
-  console.log("💰 Mollie payment result:", result);
-
   if (result.success && result.data?.checkoutUrl) {
     redirect(result.data.checkoutUrl);
   }
@@ -72,34 +67,15 @@ export default async function WalletPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Toegang geweigerd
-          </h2>
-          <p className="mt-2 text-gray-600">
-            Je moet ingelogd zijn om je wallet te bekijken.
-          </p>
-          <a
-            href="/login"
-            className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-          >
-            Inloggen
-          </a>
-        </div>
-      </div>
-    );
+    redirect('/login');
   }
 
-  // Get user profile
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("club_id")
     .eq("id", user.id)
     .single();
 
-  // Use profile club_id or fallback to demo club
   const clubId = profile?.club_id || "90f93d47-b438-427c-8b33-0597817c1d96";
 
   const { data: walletData } = await supabase
@@ -112,67 +88,91 @@ export default async function WalletPage() {
   const wallet = walletData || { balance: 0 };
 
   return (
-    <div className="min-h-screen bg-[#121212] py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white/5 shadow-2xl shadow-black/20 rounded-3xl p-6 border border-white/10 backdrop-blur-xl">
-          <h1 className="text-3xl font-bold text-white mb-6">Mijn Wallet</h1>
+    <div className="min-h-screen bg-[#0A1628] py-12 px-4 sm:px-6 lg:px-8 font-sans text-white">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-extrabold mb-8">Mijn Portemonnee</h1>
 
-          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl p-6 mb-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-blue-500/30 transition-all"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-            <div className="flex items-center justify-between relative z-10">
-              <div>
-                <h3 className="text-lg font-medium text-blue-300">
-                  Beschikbaar saldo
-                </h3>
-                <p className="text-4xl font-bold text-white mt-2 shadow-blue-500/50 drop-shadow-sm">
-                  €{wallet.balance.toFixed(2)}
-                </p>
+          {/* METAL CARD VISUAL */}
+          <div className="relative h-64 rounded-3xl overflow-hidden shadow-2xl transform transition-transform hover:scale-[1.02] duration-300">
+            {/* Background Texture */}
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-black z-0"></div>
+            <img
+              src="https://images.unsplash.com/photo-1639322537228-ad714dd474f5?q=80&w=2000&auto=format&fit=crop"
+              className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay"
+            />
+
+            {/* Shine Effect */}
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none z-10"></div>
+
+            {/* Card Content */}
+            <div className="relative z-20 p-8 flex flex-col justify-between h-full">
+              <div className="flex justify-between items-start">
+                <img src="/logo.webp" className="h-8 opacity-80" alt="CourtFlow" />
+                <span className="text-white/60 font-mono tracking-widest text-sm">PREMIUM MEMBER</span>
               </div>
-              <div className="text-blue-400 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
-                <svg
-                  className="w-8 h-8"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
+
+              <div>
+                <div className="text-gray-400 text-sm uppercase tracking-wider mb-1">Huidig Saldo</div>
+                <div className="text-5xl font-bold text-white tracking-tight flex items-baseline gap-2">
+                  €{wallet.balance.toFixed(2)}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-end">
+                <div className="font-mono text-gray-400 tracking-widest text-sm">**** **** **** 4242</div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] text-gray-500 uppercase">Valid Thru</span>
+                  <span className="text-sm font-bold">12/28</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border border-white/10 bg-white/5 rounded-2xl p-6 hover:bg-white/10 transition-colors">
-              <h3 className="text-lg font-bold text-white mb-2">
-                Geld toevoegen
-              </h3>
-              <p className="text-gray-400 mb-4 text-sm">
-                Voeg geld toe aan je wallet voor snelle betalingen.
-              </p>
-              {!profile?.club_id && (
-                <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                  <p className="text-yellow-400 text-xs">
-                    ⚠️ Geen club gevonden. Gebruik demo club voor testen.
-                  </p>
-                </div>
-              )}
-              <TopUpForm clubId={profile?.club_id || "90f93d47-b438-427c-8b33-0597817c1d96"} action={topUpAction} />
+          {/* TOP UP SECTION */}
+          <div className="bg-[#132338] rounded-3xl p-8 border border-white/5">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-full bg-[#C4FF0D] text-[#0A1628] flex items-center justify-center text-lg font-bold">+</span>
+              Opwaarderen
+            </h2>
+            <p className="text-gray-400 text-sm mb-6">Kies een bedrag om direct toe te voegen aan je account.</p>
+
+            <div className="space-y-4">
+              <TopUpForm clubId={clubId} action={topUpAction} />
             </div>
 
-            <div className="border border-white/10 bg-white/5 rounded-2xl p-6 hover:bg-white/10 transition-colors">
-              <h3 className="text-lg font-bold text-white mb-2">
-                Transactiegeschiedenis
-              </h3>
-              <p className="text-gray-400 mb-4 text-sm">
-                Bekijk je recente betalingen en stortingen.
+            {!profile?.club_id && (
+              <p className="mt-4 text-xs text-yellow-500/80 text-center">
+                ⚠️ Test modus (Demo Club)
               </p>
-              <button className="w-full bg-white/10 text-white py-3 px-4 rounded-xl hover:bg-white/20 font-medium transition-all border border-white/10">
-                Bekijken
-              </button>
-            </div>
+            )}
           </div>
         </div>
+
+        {/* TRANSACTIONS */}
+        <div className="mt-12">
+          <h2 className="text-xl font-bold mb-6">Recente Transacties</h2>
+          <div className="bg-[#132338] rounded-3xl overflow-hidden border border-white/5">
+            {[1, 2, 3].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-6 border-b border-white/5 hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${i === 0 ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                    {i === 0 ? '+' : '↗'}
+                  </div>
+                  <div>
+                    <div className="font-bold text-white">{i === 0 ? 'Opwaardering' : 'Boeking Baan 3'}</div>
+                    <div className="text-xs text-gray-400">Vandaag, 14:30</div>
+                  </div>
+                </div>
+                <div className={`font-bold ${i === 0 ? 'text-green-400' : 'text-white'}`}>
+                  {i === 0 ? '+ €50.00' : '- €30.00'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );
