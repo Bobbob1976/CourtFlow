@@ -8,6 +8,7 @@ import Image from "next/image";
 interface ImageGalleryProps {
     clubId: string;
     refreshTrigger?: number;
+    onSetBranding?: (type: 'banner' | 'logo', url: string) => void;
 }
 
 interface ClubImage {
@@ -22,7 +23,7 @@ interface ClubImage {
     storage_path: string;
 }
 
-export default function ImageGallery({ clubId, refreshTrigger }: ImageGalleryProps) {
+export default function ImageGallery({ clubId, refreshTrigger, onSetBranding }: ImageGalleryProps) {
     const [images, setImages] = useState<ClubImage[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>("all");
@@ -144,8 +145,8 @@ export default function ImageGallery({ clubId, refreshTrigger }: ImageGalleryPro
                         <div
                             key={image.id}
                             className={`relative group rounded-xl overflow-hidden border-2 transition-all ${image.is_active
-                                    ? 'border-green-500/30 bg-green-500/5'
-                                    : 'border-white/10 bg-white/5 opacity-60'
+                                ? 'border-green-500/30 bg-green-500/5'
+                                : 'border-white/10 bg-white/5 opacity-60'
                                 }`}
                         >
                             {/* Image */}
@@ -170,6 +171,23 @@ export default function ImageGallery({ clubId, refreshTrigger }: ImageGalleryPro
                                             <Eye className="w-5 h-5 text-white" />
                                         )}
                                     </button>
+
+                                    {/* NEW: Use As Actions */}
+                                    <div className="flex flex-col gap-1">
+                                        <button
+                                            onClick={() => window.confirm('Instellen als Banner?') && onSetBranding?.('banner', image.image_url)}
+                                            className="px-2 py-1 bg-[#C4FF0D] text-black text-[10px] font-bold rounded hover:scale-105 transition-transform"
+                                        >
+                                            Kies Banner
+                                        </button>
+                                        <button
+                                            onClick={() => window.confirm('Instellen als Logo?') && onSetBranding?.('logo', image.image_url)}
+                                            className="px-2 py-1 bg-white text-black text-[10px] font-bold rounded hover:scale-105 transition-transform"
+                                        >
+                                            Kies Logo
+                                        </button>
+                                    </div>
+
                                     <button
                                         onClick={() => deleteImage(image.id, image.storage_path)}
                                         className="p-2 bg-red-600/80 hover:bg-red-600 rounded-lg transition-colors"
@@ -182,8 +200,8 @@ export default function ImageGallery({ clubId, refreshTrigger }: ImageGalleryPro
                                 {/* Status Badge */}
                                 <div className="absolute top-2 right-2">
                                     <span className={`px-2 py-1 rounded-md text-xs font-bold ${image.is_active
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-gray-600 text-gray-300'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-gray-600 text-gray-300'
                                         }`}>
                                         {image.is_active ? 'Actief' : 'Inactief'}
                                     </span>
