@@ -21,10 +21,13 @@ interface Court {
     };
 }
 
+import { cancelBooking } from "@/app/actions/admin-actions";
+
 export default function VisualCourtGrid({ clubId }: { clubId: string }) {
     const [courts, setCourts] = useState<Court[]>([]);
     const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
     const [loading, setLoading] = useState(true);
+    const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
         fetchCourtStatus();
@@ -48,6 +51,23 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
             setLoading(false);
         }
     }
+
+    const handleCancel = async (bookingId: string) => {
+        if (!confirm("Weet je zeker dat je deze boeking wilt annuleren?")) return;
+
+        setProcessing(true);
+        try {
+            await cancelBooking(bookingId);
+            alert("Boeking geannuleerd.");
+            setSelectedCourt(null); // Close modal
+            fetchCourtStatus(); // Refresh grid
+        } catch (err) {
+            alert("Fout bij annuleren.");
+            console.error(err);
+        } finally {
+            setProcessing(false);
+        }
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -178,29 +198,48 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
             {/* Quick Action Modal */}
             {selectedCourt && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-gray-900 border border-white/20 rounded-3xl p-6 max-w-md w-full relative">
+                    <div className="bg-gray-900 border border-white/20 rounded-3xl p-6 max-w-md w-full relative shadow-2xl">
                         <button
                             onClick={() => setSelectedCourt(null)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
                         >
                             <X className="w-6 h-6" />
                         </button>
 
-                        <h2 className="text-2xl font-bold text-white mb-4">{selectedCourt.name}</h2>
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold text-white mb-1">{selectedCourt.name}</h2>
+                            <p className="text-gray-400 text-sm">Beheer huidige status</p>
+                        </div>
 
                         <div className="space-y-3">
-                            <button className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 px-4 rounded-xl font-bold transition-colors">
-                                Verlengen (+30 min)
-                            </button>
-                            <button className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 px-4 rounded-xl font-bold transition-colors">
-                                Verplaatsen
-                            </button>
-                            <button className="w-full bg-red-600 hover:bg-red-500 text-white py-3 px-4 rounded-xl font-bold transition-colors">
-                                Annuleren
-                            </button>
-                            <button className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-xl font-bold transition-colors">
-                                Details Bekijken
-                            </button>
+                            {selectedCourt.status === 'occupied' || selectedCourt.status === 'payment_pending' ? (
+                                <>
+                                    <button
+                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 px-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+                                        onClick={() => alert("Feature komt binnenkort: Verplaatsen")}
+                                    >
+                                        📅 Verplaatsen
+                                    </button>
+
+                                    <button
+                                        onClick={() => selectedCourt.currentBooking && handleCancel(selectedCourt.currentBooking.id)}
+                                        disabled={processing}
+                                        className="w-full bg-white/5 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 py-3 px-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        {processing ? 'Bezig...' : '🚫 Boeking Annuleren'}
+                                    </button>
+                                </>
+                            ) : (
+                                <button className="w-full bg-[#C4FF0D] hover:bg-[#b0e60b] text-black py-3 px-4 rounded-xl font-bold transition-colors">
+                                    + Nieuwe Boeking Maken
+                                </button>
+                            )}
+
+                            <div className="pt-4 border-t border-white/10 mt-4">
+                                <button className="w-full text-gray-500 hover:text-white text-sm font-medium transition-colors">
+                                    Bekijk Baan Details
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
