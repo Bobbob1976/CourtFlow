@@ -11,6 +11,7 @@ export default function BookingPage() {
   const router = useRouter();
   const [club, setClub] = useState<any>(null);
   const [courts, setCourts] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [duration, setDuration] = useState(60); // Default 60 minutes
@@ -53,6 +54,59 @@ export default function BookingPage() {
     }
     loadData();
   }, [clubId]);
+
+  // Fetch bookings whenever date or club changes
+  useEffect(() => {
+    async function fetchBookings() {
+      if (!club) return;
+
+      const supabase = createClient();
+      const dateStr = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+      const { data } = await supabase
+        .from('bookings')
+        .select('court_id, start_time, end_time')
+        .eq('booking_date', dateStr);
+
+      setBookings(data || []);
+    }
+    fetchBookings();
+  }, [club, selectedDate]);
+
+  // Generate flexible time slots (every 30 mins)
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let h = 9; h < 23; h++) {
+      slots.push(`${h.toString().padStart(2, '0')}:00`);
+      slots.push(`${h.toString().padStart(2, '0')}:30`);
+    }
+    return slots;
+  };
+
+  const isSlotAvailable = (courtId: string, startTime: string) => {
+    // Logic to check overlap against existing bookings
+    // Parse requested start time
+    const [reqH, reqM] = startTime.split(':').map(Number);
+    const reqStartMins = reqH * 60 + reqM;
+    const reqEndMins = reqStartMins + duration;
+
+    // Check all bookings for this court
+    const courtBookings = bookings.filter(b => b.court_id === courtId);
+
+    for (const booking of courtBookings) {
+      const [bStartH, bStartM] = booking.start_time.split(':').map(Number);
+      const [bEndH, bEndM] = booking.end_time.split(':').map(Number);
+
+      const bStartMins = bStartH * 60 + bStartM;
+      const bEndMins = bEndH * 60 + bEndM;
+
+      // Check overlap: Start < End AND End > Start
+      if (reqStartMins < bEndMins && reqEndMins > bStartMins) {
+        return false; // Overlap!
+      }
+    }
+    return true;
+  };
 
 
 
@@ -307,29 +361,37 @@ export default function BookingPage() {
                   </div>
 
                   <div className="grid grid-cols-4 gap-2">
-                    {['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00', '19:30', '21:00', '22:30'].map(time => (
-                      <button
-                        key={time}
-                        onClick={() => handleBooking(court.id, time)}
-                        disabled={processingBooking}
-                        className="py-2 rounded-xl bg-[#0A1628] border border-white/10 text-sm font-bold transition-all hover:scale-105 hover:text-[#0A1628] disabled:opacity-50 disabled:cursor-not-allowed"
-                        onMouseEnter={(e) => {
-                          if (!processingBooking) {
-                            e.currentTarget.style.backgroundColor = primaryColor;
-                            e.currentTarget.style.borderColor = primaryColor;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!processingBooking) {
-                            e.currentTarget.style.backgroundColor = '#0A1628';
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                            e.currentTarget.style.color = '#fff';
-                          }
-                        }}
-                      >
-                        {time}
-                      </button>
-                    ))}
+                    {generateTimeSlots().map(time => {
+                      const available = isSlotAvailable(court.id, time);
+                      return (
+                        <button
+                          key={time}
+                          onClick={() => handleBooking(court.id, time)}
+                          disabled={!available || processingBooking}
+                          className={`py-2 rounded-xl text-xs font-bold transition-all border 
+                            ${available
+                              ? 'bg-[#0A1628] text-white border-white/10 hover:scale-105'
+                              : 'bg-red-900/10 text-gray-600 border-white/5 cursor-not-allowed opacity-50'
+                            }`}
+                          onMouseEnter={(e) => {
+                            if (available && !processingBooking) {
+                              e.currentTarget.style.backgroundColor = primaryColor;
+                              e.currentTarget.style.borderColor = primaryColor;
+                              e.currentTarget.style.color = '#0A1628';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (available && !processingBooking) {
+                              e.currentTarget.style.backgroundColor = '#0A1628';
+                              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                              e.currentTarget.style.color = '#fff';
+                            }
+                          }}
+                        >
+                          {time}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
