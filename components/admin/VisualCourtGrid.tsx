@@ -14,7 +14,11 @@ interface Court {
         remainingMinutes: number;
         players: { name: string; avatar?: string }[];
         paymentStatus: string;
-    };
+    } | null;
+    nextBooking?: {
+        startTime: string;
+        player: string;
+    } | null;
     maintenanceInfo?: {
         reason: string;
         estimatedEnd: string;
@@ -168,7 +172,7 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
                             <div className="space-y-2">
                                 {/* Countdown Timer */}
                                 <div className="bg-white/10 rounded-xl p-2 border border-white/20">
-                                    <div className="flex items-center gap-2 text-sm">
+                                    <div className="flex items-center gap-2 text-sm mt-2">
                                         <Clock className="w-4 h-4 text-blue-400" />
                                         <span className="text-white font-bold">
                                             {court.currentBooking.remainingMinutes} min
@@ -202,7 +206,16 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
 
                         {court.status === "available" && (
                             <div className="space-y-2">
-                                <p className="text-sm text-green-400 font-bold">Beschikbaar</p>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+                                    <span className="font-bold uppercase text-xs text-emerald-400 tracking-wider">Beschikbaar</span>
+                                </div>
+                                {court.nextBooking && (
+                                    <div className="text-xs text-blue-300 font-medium flex items-center gap-1 mt-1">
+                                        <span>🕒</span>
+                                        Volgende: {court.nextBooking.startTime} ({court.nextBooking.player})
+                                    </div>
+                                )}
                                 <button className="w-full bg-green-500/20 hover:bg-green-500/30 text-green-400 py-2 px-3 rounded-xl text-sm font-bold transition-colors border border-green-500/30">
                                     + Snel Boeken
                                 </button>

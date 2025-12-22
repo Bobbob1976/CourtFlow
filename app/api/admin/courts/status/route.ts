@@ -70,6 +70,37 @@ export async function GET(request: Request) {
                 return now >= bookingStart && now < bookingEnd;
             });
 
+            // Find NEXT booking for today
+            const nextBooking = bookings?.filter((booking) => {
+                if (booking.court_id !== court.id) return false;
+                if (!booking.start_time) return false;
+
+                const [startH, startM] = booking.start_time.split(":").map(Number);
+                const bookingStart = new Date(now);
+                bookingStart.setHours(startH, startM, 0, 0);
+
+                return bookingStart > now;
+            }).sort((a, b) => a.start_time.localeCompare(b.start_time))[0];
+
+            let courtData: any = {
+                id: court.id,
+                name: court.name,
+                status: "available",
+                currentBooking: null,
+                nextBooking: null
+            };
+
+            if (nextBooking) {
+                // @ts-ignore
+                const nextProfile = Array.isArray(nextBooking.user_profiles) ? nextBooking.user_profiles[0] : nextBooking.user_profiles;
+                const nextName = nextProfile?.full_name || "Gast";
+
+                courtData.nextBooking = {
+                    startTime: nextBooking.start_time?.substring(0, 5) || "??:??",
+                    player: nextName
+                };
+            }
+
             if (activeBooking) {
                 // Calculate remaining time safely
                 let remainingMinutes = 0;
@@ -94,27 +125,18 @@ export async function GET(request: Request) {
                     status = "payment_pending";
                 }
 
-                return {
-                    id: court.id,
-                    name: court.name,
-                    status: status,
-                    currentBooking: {
-                        id: activeBooking.id,
-                        startTime: activeBooking.start_time?.substring(0, 5) || "??:??",
-                        endTime: bookingEndStr,
-                        remainingMinutes: Math.max(0, remainingMinutes),
-                        players: [{ name: playerName }],
-                        paymentStatus: activeBooking.payment_status
-                    }
+                courtData.status = status;
+                courtData.currentBooking = {
+                    id: activeBooking.id,
+                    startTime: activeBooking.start_time?.substring(0, 5) || "??:??",
+                    endTime: bookingEndStr,
+                    remainingMinutes: Math.max(0, remainingMinutes),
+                    players: [{ name: playerName }],
+                    paymentStatus: activeBooking.payment_status
                 };
             }
 
-            // No active booking -> Available
-            return {
-                id: court.id,
-                name: court.name,
-                status: "available"
-            };
+            return courtData;
         });
 
         return NextResponse.json({ courts: courtStatusList });
