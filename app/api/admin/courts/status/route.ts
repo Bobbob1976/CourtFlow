@@ -49,25 +49,33 @@ export async function GET(request: Request) {
 
         if (bookingsError) throw bookingsError;
 
-        // 3. Map status for each court
+        // 2. Determine status per court (TimeZone Aware: Europe/Amsterdam)
+        const TIMEZONE = 'Europe/Amsterdam';
+        // Hacky way to get local time parts
+        const nowFormatter = new Intl.DateTimeFormat('en-GB', {
+            timeZone: TIMEZONE,
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        const nowTimeStr = nowFormatter.format(new Date()); // "12:25"
+        const [nowH, nowM] = nowTimeStr.split(':').map(Number);
+        const currentMinutes = nowH * 60 + nowM;
+
         const courtStatusList = courts.map((court) => {
-            // Find a booking that is actively happening NOW on this court
+            // Filter bookings for this court
             const activeBooking = bookings?.find((booking) => {
                 if (booking.court_id !== court.id) return false;
                 if (!booking.start_time || !booking.end_time) return false;
 
-                // Parse times
                 const [startH, startM] = booking.start_time.split(":").map(Number);
+                const startMinutes = startH * 60 + startM;
+
                 const [endH, endM] = booking.end_time.split(":").map(Number);
-
-                const bookingStart = new Date(now);
-                bookingStart.setHours(startH, startM, 0, 0);
-
-                const bookingEnd = new Date(now);
-                bookingEnd.setHours(endH, endM, 0, 0);
+                const endMinutes = endH * 60 + endM;
 
                 // Check overlap
-                return now >= bookingStart && now < bookingEnd;
+                return currentMinutes >= startMinutes && currentMinutes < endMinutes;
             });
 
             // Find NEXT booking for today
@@ -76,10 +84,9 @@ export async function GET(request: Request) {
                 if (!booking.start_time) return false;
 
                 const [startH, startM] = booking.start_time.split(":").map(Number);
-                const bookingStart = new Date(now);
-                bookingStart.setHours(startH, startM, 0, 0);
+                const startMinutes = startH * 60 + startM;
 
-                return bookingStart > now;
+                return startMinutes > currentMinutes;
             }).sort((a, b) => a.start_time.localeCompare(b.start_time))[0];
 
             let courtData: any = {
@@ -108,9 +115,8 @@ export async function GET(request: Request) {
 
                 if (activeBooking.end_time) {
                     const [endH, endM] = activeBooking.end_time.split(":").map(Number);
-                    const bookingEnd = new Date(now);
-                    bookingEnd.setHours(endH, endM, 0, 0);
-                    remainingMinutes = differenceInMinutes(bookingEnd, now);
+                    const endMinutes = endH * 60 + endM;
+                    remainingMinutes = endMinutes - currentMinutes;
                 }
 
                 // Get player name comfortably
