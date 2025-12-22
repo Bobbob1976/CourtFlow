@@ -278,7 +278,10 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
                             )}
 
                             <div className="pt-4 border-t border-white/10 mt-4">
-                                <button className="w-full text-gray-500 hover:text-white text-sm font-medium transition-colors">
+                                <button
+                                    onClick={() => alert("Baan details beheer komt in de volgende update.")}
+                                    className="w-full text-gray-500 hover:text-white text-sm font-medium transition-colors"
+                                >
                                     Bekijk Baan Details
                                 </button>
                             </div>

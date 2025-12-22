@@ -4,16 +4,19 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useParams, useRouter } from 'next/navigation';
 import confetti from 'canvas-confetti';
+import { createPublicBooking } from '@/app/actions/booking-actions';
 
 export default function BookingPage() {
   const { clubId } = useParams(); // clubId is actually subdomain
   const router = useRouter();
   const [club, setClub] = useState<any>(null);
+  const [courts, setCourts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Succes state voor "Dopamine" effect
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [processingBooking, setProcessingBooking] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -26,11 +29,52 @@ export default function BookingPage() {
         .eq('subdomain', clubId)
         .single();
 
-      if (clubData) setClub(clubData);
+      if (clubData) {
+        setClub(clubData);
+
+        // 2. Get Courts (Real courts!)
+        const { data: courtsData } = await supabase
+          .from('courts')
+          .select('*')
+          .eq('club_id', clubData.id)
+          .order('name');
+
+        setCourts(courtsData || []);
+      }
       setLoading(false);
     }
     loadData();
   }, [clubId]);
+
+
+
+  const handleBooking = async (courtId: string, time: string) => {
+    setProcessingBooking(true);
+    try {
+      // Formatteer datum als YYYY-MM-DD
+      const dateStr = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format trick
+
+      const result = await createPublicBooking({
+        clubId: club.id,
+        courtId: courtId,
+        date: dateStr,
+        startTime: time,
+        duration: 90, // Standaard 90 min voor nu
+        price: 30 // Standaard prijs
+      });
+
+      if (result.success) {
+        handleSuccess();
+      } else {
+        alert(result.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Er ging iets mis.");
+    } finally {
+      setProcessingBooking(false);
+    }
+  };
 
   // Trigger Confetti
   const handleSuccess = () => {
@@ -181,8 +225,8 @@ export default function BookingPage() {
                 onClick={() => setSelectedDate(date)}
                 style={isSelected ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                 className={`flex-shrink-0 w-20 h-24 rounded-2xl flex flex-col items-center justify-center border transition-all ${isSelected
-                    ? 'text-[#0A1628] scale-105 shadow-[0_0_20px_rgba(196,255,13,0.3)]'
-                    : 'bg-[#132338] border-white/5 text-gray-400 hover:border-white/20'
+                  ? 'text-[#0A1628] scale-105 shadow-[0_0_20px_rgba(196,255,13,0.3)]'
+                  : 'bg-[#132338] border-white/5 text-gray-400 hover:border-white/20'
                   }`}
               >
                 <span className="text-xs font-bold uppercase mb-1">
@@ -202,66 +246,69 @@ export default function BookingPage() {
         </h2>
 
         {/* COURT CARDS (Padel Images) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {[
-            { name: 'Center Court', type: 'Indoor • WPT Blue', label: '🏆 Main Court', img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&auto=format&fit=crop&q=60' }, // Blue Court
-            { name: 'Baan 2 (Panoramic)', type: 'Indoor • Full Glass', label: '🌟 Panoramic', img: 'https://images.unsplash.com/photo-1599586120429-48285b6a7a81?w=800&auto=format&fit=crop&q=60' }, // Net closeup
-            { name: 'Baan 3', type: 'Outdoor', label: '☀️ Outdoor', img: 'https://images.unsplash.com/photo-1624653697960-aa228c2e633d?w=800&auto=format&fit=crop&q=60' }, // Action shot
-            { name: 'Baan 4', type: 'Indoor', label: '🎾 Standard', img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&auto=format&fit=crop&q=60' } // Blue Court again
-          ].map((court, idx) => (
-            <div key={idx} className="bg-[#132338] rounded-3xl overflow-hidden border border-white/5 group hover:border-[#C4FF0D]/50 transition-colors shadow-lg">
-              {/* Court Image - Crucial for Product Visualization */}
-              <div className="h-48 relative overflow-hidden bg-gray-800">
-                <img
-                  src={court.img}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  alt={court.name}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&auto=format&fit=crop&q=60';
-                  }}
-                />
-                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10">
-                  {court.label}
-                </div>
-              </div>
-
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-1">{court.name}</h3>
-                    <p className="text-sm text-gray-400">{court.type} • WPT Gras • LED verlichting</p>
-                  </div>
-                  <div className="text-right">
-                    <div style={{ color: primaryColor }} className="font-bold text-lg">€30,00</div>
-                    <div className="text-xs text-gray-500">per 90 min</div>
+        {/* REAL COURTS GRID */}
+        {courts.length === 0 ? (
+          <div className="text-gray-500 text-center py-12 bg-[#132338] rounded-3xl border border-white/5">
+            <p className="text-xl font-bold text-white">Geen banen gevonden</p>
+            <p className="text-sm text-gray-400 mt-2">Er zijn nog geen banen aangemaakt voor deze club.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {courts.map((court: any) => (
+              <div key={court.id} className="bg-[#132338] rounded-3xl overflow-hidden border border-white/5 group hover:border-[#C4FF0D]/50 transition-colors shadow-lg">
+                <div className="h-48 relative overflow-hidden bg-gray-800">
+                  <img
+                    src="https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&auto=format&fit=crop&q=60" // Placeholder
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    alt={court.name}
+                  />
+                  <div className="absolute top-4 right-4 bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10">
+                    {court.type || 'Padel Court'}
                   </div>
                 </div>
 
-                {/* Time Slots */}
-                <div className="grid grid-cols-4 gap-2">
-                  {['16:00', '17:30', '19:00', '20:30'].map(time => (
-                    <button
-                      key={time}
-                      onClick={handleSuccess}
-                      className="py-2 rounded-xl bg-[#0A1628] border border-white/10 text-sm font-bold transition-all hover:scale-105 hover:text-[#0A1628]"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = primaryColor;
-                        e.currentTarget.style.borderColor = primaryColor;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#0A1628';
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                        e.currentTarget.style.color = '#fff';
-                      }}
-                    >
-                      {time}
-                    </button>
-                  ))}
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-1">{court.name}</h3>
+                      <p className="text-sm text-gray-400">Professional Court • LED</p>
+                    </div>
+                    <div className="text-right">
+                      <div style={{ color: primaryColor }} className="font-bold text-lg">€30,00</div>
+                      <div className="text-xs text-gray-500">per 90 min</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2">
+                    {['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00', '19:30', '21:00', '22:30'].map(time => (
+                      <button
+                        key={time}
+                        onClick={() => handleBooking(court.id, time)}
+                        disabled={processingBooking}
+                        className="py-2 rounded-xl bg-[#0A1628] border border-white/10 text-sm font-bold transition-all hover:scale-105 hover:text-[#0A1628] disabled:opacity-50 disabled:cursor-not-allowed"
+                        onMouseEnter={(e) => {
+                          if (!processingBooking) {
+                            e.currentTarget.style.backgroundColor = primaryColor;
+                            e.currentTarget.style.borderColor = primaryColor;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!processingBooking) {
+                            e.currentTarget.style.backgroundColor = '#0A1628';
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                            e.currentTarget.style.color = '#fff';
+                          }
+                        }}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
       </div>
     </div>
