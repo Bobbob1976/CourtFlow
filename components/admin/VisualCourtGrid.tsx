@@ -27,6 +27,7 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
     const [courts, setCourts] = useState<Court[]>([]);
     const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
@@ -37,16 +38,25 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
 
     async function fetchCourtStatus() {
         try {
+            setError(null);
             const response = await fetch(`/api/admin/courts/status?clubId=${clubId}`);
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || `Server error: ${response.status}`);
+            }
+
             const data = await response.json();
             if (data && Array.isArray(data.courts)) {
                 setCourts(data.courts);
             } else {
                 console.error("Invalid court data format", data);
+                setError("Ongeldig data formaat ontvangen van server.");
                 setCourts([]);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch court status:", error);
+            setError(error.message || "Kon baan data niet ophalen.");
         } finally {
             setLoading(false);
         }
@@ -105,6 +115,35 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
                 {[...Array(8)].map((_, i) => (
                     <div key={i} className="h-48 bg-white/5 rounded-2xl animate-pulse border border-white/10"></div>
                 ))}
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-8 bg-red-500/10 border border-red-500/20 rounded-2xl text-center">
+                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">Er ging iets mis</h3>
+                <p className="text-red-300 mb-4">{error}</p>
+                <button
+                    onClick={() => fetchCourtStatus()}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold transition-colors"
+                >
+                    Opnieuw Proberen
+                </button>
+            </div>
+        );
+    }
+
+    if (courts.length === 0) {
+        return (
+            <div className="p-12 text-center bg-white/5 rounded-3xl border border-white/10 border-dashed">
+                <Wrench className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-400">Geen banen gevonden</h3>
+                <p className="text-gray-500 text-sm mt-2">
+                    Er zijn geen banen gekoppeld aan Club ID: <span className="font-mono text-gray-400">{clubId}</span>.
+                    <br />Controleer je database of maak nieuwe banen aan.
+                </p>
             </div>
         );
     }
