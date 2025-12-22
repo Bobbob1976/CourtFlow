@@ -269,7 +269,10 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
                                     </button>
                                 </>
                             ) : (
-                                <button className="w-full bg-[#C4FF0D] hover:bg-[#b0e60b] text-black py-3 px-4 rounded-xl font-bold transition-colors">
+                                <button
+                                    onClick={() => window.open(`/${clubId}/bookings`, '_blank')}
+                                    className="w-full bg-[#C4FF0D] hover:bg-[#b0e60b] text-black py-3 px-4 rounded-xl font-bold transition-colors"
+                                >
                                     + Nieuwe Boeking Maken
                                 </button>
                             )}
