@@ -1,10 +1,12 @@
 
 import { createClient } from "@/utils/supabase/server";
-import { NextResponse } from "next/server";
-import { format, addMinutes, differenceInMinutes, parseISO } from "date-fns";
-import { nl } from "date-fns/locale";
+import { NextResponse, NextRequest } from "next/server";
+import { format } from "date-fns";
 
-export async function GET(request: Request) {
+// Force dynamic to prevent caching of court status
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const clubId = searchParams.get("clubId");
 
@@ -15,22 +17,23 @@ export async function GET(request: Request) {
     const supabase = createClient();
 
     try {
-        // 1. Fetch all courts for this club
+        // 1. Determine Correct Date (NL Timezone)
+        const TIMEZONE = 'Europe/Amsterdam';
+        const dateFormatter = new Intl.DateTimeFormat('en-CA', { // YYYY-MM-DD
+            timeZone: TIMEZONE,
+        });
+        const dateStr = dateFormatter.format(new Date());
+
+        // 2. Fetch Courts
         const { data: courts, error: courtsError } = await supabase
             .from("courts")
-            .select("id, name")
+            .select("*")
             .eq("club_id", clubId)
             .order("name");
 
         if (courtsError) throw courtsError;
 
-        // 2. Fetch Active Bookings (where NOW is between start_time and end_time)
-        // We use a broader range to catch all bookings for today to be safe, then filter in JS
-        // Or strictly check time overlap in SQL. Let's filter in JS for flexibility.
-        const now = new Date();
-        const startOfDay = new Date(now);
-        startOfDay.setHours(0, 0, 0, 0);
-
+        // 3. Fetch Bookings for Date
         const { data: bookings, error: bookingsError } = await supabase
             .from("bookings")
             .select(`
@@ -41,16 +44,15 @@ export async function GET(request: Request) {
                 end_time,
                 payment_status,
                 user_id,
-                user_profiles ( full_name )
+                user_profiles(full_name)
             `)
             .eq("club_id", clubId)
-            .eq("booking_date", format(now, "yyyy-MM-dd")) // Only today
+            .eq("booking_date", dateStr) // Use NL date!
             .is("cancelled_at", null);
 
         if (bookingsError) throw bookingsError;
 
-        // 2. Determine status per court (TimeZone Aware: Europe/Amsterdam)
-        const TIMEZONE = 'Europe/Amsterdam';
+        // 4. Determine status per court (TimeZone Aware: Europe/Amsterdam)
         // Hacky way to get local time parts
         const nowFormatter = new Intl.DateTimeFormat('en-GB', {
             timeZone: TIMEZONE,
