@@ -31,7 +31,7 @@ export async function GET() {
                 .from("bookings")
                 .select("*", { count: 'exact', head: true })
                 .eq("club_id", clubId)
-                .eq("date", dateStr)
+                .eq("booking_date", dateStr)
                 .is("cancelled_at", null);
 
             // Determine "busyness" label logic (mock logic based on real count)

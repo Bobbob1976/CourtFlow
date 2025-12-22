@@ -16,7 +16,7 @@ export default async function AdminFinancialsPage() {
     // 2. Fetch bookings to calculate revenue
     const { data: bookings } = await supabase
         .from("bookings")
-        .select("total_cost, payment_status, cancelled_at, created_at, date")
+        .select("total_cost, payment_status, cancelled_at, created_at, booking_date")
         .eq('club_id', club.id)
         .is('cancelled_at', null);
 
@@ -42,7 +42,7 @@ export default async function AdminFinancialsPage() {
         description: 'Court booking',
         credit: b.total_cost,
         debit: 0,
-        transaction_date: b.date || b.created_at
+        transaction_date: b.booking_date || b.created_at
     })) || [];
 
     return (

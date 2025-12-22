@@ -34,7 +34,7 @@ export default function RevenueChart({ bookings }: RevenueChartProps) {
             for (let i = 11; i >= 0; i--) {
                 const monthDate = subMonths(now, i);
                 const monthRevenue = bookings
-                    .filter(b => isSameMonth(new Date(b.created_at || b.date), monthDate))
+                    .filter(b => isSameMonth(new Date(b.created_at || b.booking_date), monthDate))
                     .reduce((sum, b) => sum + (Number(b.total_cost) || 0), 0);
 
                 data.push({
@@ -48,7 +48,7 @@ export default function RevenueChart({ bookings }: RevenueChartProps) {
             for (let i = points - 1; i >= 0; i--) {
                 const dayDate = subDays(now, i);
                 const dayRevenue = bookings
-                    .filter(b => isSameDay(new Date(b.created_at || b.date), dayDate))
+                    .filter(b => isSameDay(new Date(b.created_at || b.booking_date), dayDate))
                     .reduce((sum, b) => sum + (Number(b.total_cost) || 0), 0);
 
                 data.push({

@@ -36,7 +36,7 @@ export async function GET(request: Request) {
             .select(`
                 id,
                 court_id,
-                date,
+                booking_date,
                 start_time,
                 duration,
                 payment_status,
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
                 user_profiles ( full_name )
             `)
             .eq("club_id", clubId)
-            .eq("date", format(now, "yyyy-MM-dd")) // Only today
+            .eq("booking_date", format(now, "yyyy-MM-dd")) // Only today
             .is("cancelled_at", null);
 
         if (bookingsError) throw bookingsError;
