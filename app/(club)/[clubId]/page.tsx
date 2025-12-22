@@ -12,6 +12,7 @@ export default function BookingPage() {
   const [club, setClub] = useState<any>(null);
   const [courts, setCourts] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [duration, setDuration] = useState(60); // Default 60 minutes
@@ -23,6 +24,10 @@ export default function BookingPage() {
   useEffect(() => {
     async function loadData() {
       const supabase = createClient();
+
+      // Check Auth
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
 
       // 1. Get Club
       // Check if clubId looks like a UUID
@@ -111,6 +116,11 @@ export default function BookingPage() {
 
 
   const handleBooking = async (courtId: string, time: string) => {
+    if (!currentUser) {
+      router.push('/login');
+      return;
+    }
+
     setProcessingBooking(true);
     try {
       // Formatteer datum als YYYY-MM-DD

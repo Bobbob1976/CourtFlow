@@ -15,11 +15,11 @@ export async function createPublicBooking(data: {
 
     // 1. Get User
     const { data: { user } } = await supabase.auth.getUser();
-    let userId = user?.id || null; // Allow null for guests
+    let userId = user?.id;
 
-    // if (!userId) {
-    //    return { success: false, error: "Log in om te boeken (Test Mode)" };
-    // }
+    if (!userId) {
+        return { success: false, error: "Log in om te boeken." };
+    }
 
     // 2. Calculate End Time
     const endTime = calculateEndTime(data.startTime, data.duration);
