@@ -1,11 +1,38 @@
 import Link from "next/link";
 import SidebarClient from "@/components/admin/SidebarClient";
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function AdminLayout({
+export default async function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const supabase = createClient();
+
+    // 1. Check Logged In
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        redirect("/login");
+    }
+
+    // 2. Check Role
+    const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+    // Allow Admins & Owners
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'club_owner' || profile?.role === 'super_admin';
+
+    // TEMPORARY: Allow access if no profile found yet (race condition) or for dev 
+    // BUT user asked to secure it. So stick to logic.
+    // If you lock yourself out -> Go to Supabase > user_profiles > Set your role to 'admin'
+    if (!isAdmin) {
+        redirect("/"); // Kick them out to homepage
+    }
+
     return (
         <div className="flex h-screen text-white font-sans overflow-hidden">
             {/* Sidebar (Client Component for Mobile Responsiveness) */}

@@ -29,10 +29,22 @@ export default async function AdminDashboard() {
         { title: "Actie Punten", value: "3", trend: "Urgent", trendUp: false, sparkline: "red" },
     ];
 
-    const recentActions = [
-        { type: "Booking", desc: "Court 1 reserved by Mike", user: "Mike Johnson", time: "2 min ago", status: "resolved" },
-        { type: "Payment", desc: "Failed transaction #492", user: "Sarah Connor", time: "15 min ago", status: "failed" },
-    ];
+    // 3. Fetch Recent Bookings (Real Activity)
+    const { data: recentBookings } = await supabase
+        .from('bookings')
+        .select(`
+            id,
+            start_time,
+            booking_date,
+            created_at,
+            status,
+            court:courts(name),
+            user_profiles(full_name)
+        `)
+        .eq('club_id', club.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
 
     return (
         <div className="space-y-8">
@@ -71,23 +83,41 @@ export default async function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* Action Items */}
-                <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 flex flex-col">
-                    <h3 className="text-xl font-bold text-white mb-6">Recente Activiteit</h3>
+                {/* Action Items - REAL FEED */}
+                <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 flex flex-col h-[500px]">
+                    <h3 className="text-xl font-bold text-white mb-6 flex items-center justify-between">
+                        Recente Activiteit
+                        <span className="text-xs bg-green-500/10 text-green-400 px-2 py-1 rounded border border-green-500/20 animate-pulse">LIVE</span>
+                    </h3>
                     <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-white/10">
-                        {recentActions.map((action, i) => (
-                            <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${action.status === 'failed' ? 'text-red-400 border-red-500/20 bg-red-500/10' :
-                                        action.status === 'warning' ? 'text-yellow-400 border-yellow-500/20 bg-yellow-500/10' :
-                                            'text-green-400 border-green-500/20 bg-green-500/10'
-                                        }`}>{action.type.toUpperCase()}</span>
-                                    <span className="text-xs text-gray-500">{action.time}</span>
-                                </div>
-                                <p className="text-sm font-medium text-white mb-1 group-hover:text-blue-400 transition-colors">{action.desc}</p>
-                                <p className="text-xs text-gray-400">by {action.user}</p>
-                            </div>
-                        ))}
+                        {!recentBookings || recentBookings.length === 0 ? (
+                            <div className="text-center text-gray-500 py-8">Nog geen activiteiten.</div>
+                        ) : (
+                            recentBookings.map((booking: any) => {
+                                // Extract Data
+                                const profile = Array.isArray(booking.user_profiles) ? booking.user_profiles[0] : booking.user_profiles;
+                                const playerName = profile?.full_name || "Gast";
+                                const courtName = booking.court?.name || "Baan";
+                                const timeProps = new Date(booking.created_at);
+                                const timeStr = timeProps.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+                                const dateStr = timeProps.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+
+                                return (
+                                    <div key={booking.id} className="p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border text-blue-400 border-blue-500/20 bg-blue-500/10`}>
+                                                BOEKING
+                                            </span>
+                                            <span className="text-xs text-gray-500">{dateStr} {timeStr}</span>
+                                        </div>
+                                        <p className="text-sm font-medium text-white mb-1 group-hover:text-blue-400 transition-colors">
+                                            {courtName} - {booking.start_time?.substring(0, 5)}
+                                        </p>
+                                        <p className="text-xs text-gray-400">door {playerName}</p>
+                                    </div>
+                                )
+                            })
+                        )}
                     </div>
                 </div>
             </div>
