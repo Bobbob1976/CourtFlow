@@ -16,6 +16,7 @@ interface Court {
         paymentStatus: string;
     } | null;
     nextBooking?: {
+        id: string;
         startTime: string;
         player: string;
     } | null;
@@ -306,12 +307,37 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
                                     </button>
                                 </div>
                             ) : (
-                                <button
-                                    onClick={() => window.open(`/${clubId}`, '_blank')}
-                                    className="w-full bg-[#C4FF0D] hover:bg-[#b0e60b] text-black py-3 px-4 rounded-xl font-bold transition-colors"
-                                >
-                                    + Nieuwe Boeking Maken
-                                </button>
+                                <div className="space-y-4">
+                                    <button
+                                        onClick={() => window.open(`/${clubId}`, '_blank')}
+                                        className="w-full bg-[#C4FF0D] hover:bg-[#b0e60b] text-black py-3 px-4 rounded-xl font-bold transition-colors"
+                                    >
+                                        + Nieuwe Boeking Maken
+                                    </button>
+
+                                    {selectedCourt.nextBooking && (
+                                        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                                            <p className="text-sm text-gray-400 mb-2 flex items-center gap-2">
+                                                <span>🔜</span>
+                                                Aankomend: <span className="text-white font-bold">{selectedCourt.nextBooking.startTime}</span>
+                                            </p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={() => selectedCourt.nextBooking && handleMove(selectedCourt.nextBooking.id)}
+                                                    className="bg-[#1e293b] text-blue-400 py-2 rounded-lg text-xs font-bold border border-blue-500/20 hover:bg-[#334155] flex items-center justify-center gap-1"
+                                                >
+                                                    <Calendar className="w-3 h-3" /> Verplaatsen
+                                                </button>
+                                                <button
+                                                    onClick={() => selectedCourt.nextBooking && handleCancel(selectedCourt.nextBooking.id)}
+                                                    className="bg-red-500/10 text-red-400 py-2 rounded-lg text-xs font-bold border border-red-500/20 hover:bg-red-500/20 flex items-center justify-center gap-1"
+                                                >
+                                                    <X className="w-3 h-3" /> Annuleren
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             )}
 
                             <div className="mt-6 pt-6 border-t border-white/10 text-center">

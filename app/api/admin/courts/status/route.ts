@@ -103,6 +103,7 @@ export async function GET(request: Request) {
                 const nextName = nextProfile?.full_name || "Gast";
 
                 courtData.nextBooking = {
+                    id: nextBooking.id, // Add ID so we can manage it
                     startTime: nextBooking.start_time?.substring(0, 5) || "??:??",
                     player: nextName
                 };
