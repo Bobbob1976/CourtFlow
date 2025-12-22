@@ -13,6 +13,7 @@ export default function BookingPage() {
   const [courts, setCourts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [duration, setDuration] = useState(60); // Default 60 minutes
 
   // Succes state voor "Dopamine" effect
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -61,13 +62,15 @@ export default function BookingPage() {
       // Formatteer datum als YYYY-MM-DD
       const dateStr = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format trick
 
+      const price = (duration / 60) * 20; // €20 per uur (basis)
+
       const result = await createPublicBooking({
         clubId: club.id,
         courtId: courtId,
         date: dateStr,
         startTime: time,
-        duration: 90, // Standaard 90 min voor nu
-        price: 30 // Standaard prijs
+        duration: duration,
+        price: price
       });
 
       if (result.success) {
@@ -247,6 +250,23 @@ export default function BookingPage() {
           })}
         </div>
 
+        {/* Duration Selector */}
+        <div className="flex gap-4 mb-8 overflow-x-auto no-scrollbar">
+          {[60, 90, 120].map(d => (
+            <button
+              key={d}
+              onClick={() => setDuration(d)}
+              className={`px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${duration === d
+                ? 'text-[#0A1628] scale-105'
+                : 'bg-[#132338] text-gray-400 border border-white/10 hover:border-white/30'
+                }`}
+              style={duration === d ? { backgroundColor: primaryColor } : {}}
+            >
+              {d} min
+            </button>
+          ))}
+        </div>
+
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
           <span style={{ backgroundColor: primaryColor }} className="w-1 h-6 rounded-full"></span>
           Kies je baan
@@ -281,8 +301,8 @@ export default function BookingPage() {
                       <p className="text-sm text-gray-400">Professional Court • LED</p>
                     </div>
                     <div className="text-right">
-                      <div style={{ color: primaryColor }} className="font-bold text-lg">€30,00</div>
-                      <div className="text-xs text-gray-500">per 90 min</div>
+                      <div style={{ color: primaryColor }} className="font-bold text-lg">€{((duration / 60) * 20).toFixed(2).replace('.', ',')}</div>
+                      <div className="text-xs text-gray-500">per {duration} min</div>
                     </div>
                   </div>
 

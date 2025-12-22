@@ -41,7 +41,7 @@ export async function createPublicBooking(data: {
             booking_date: data.date,
             start_time: data.startTime,
             end_time: calculateEndTime(data.startTime, data.duration),
-            duration: data.duration,
+            // duration column does not exist, so we skip it
             total_cost: data.price,
             payment_status: 'paid', // Assume instant pay for demo
             status: 'confirmed'
