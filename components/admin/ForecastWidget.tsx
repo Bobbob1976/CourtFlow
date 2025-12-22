@@ -39,7 +39,14 @@ export default function ForecastWidget() {
         );
     }
 
-    if (days.length === 0) return null;
+    // Safety check: if days is not an array (e.g. API error), show empty state instead of crashing
+    if (!days || !Array.isArray(days) || days.length === 0) {
+        return (
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#1a1a1a] p-8 h-80 flex items-center justify-center text-gray-500">
+                Geen forecast data beschikbaar
+            </div>
+        );
+    }
 
     // Calculate max for bar height
     const maxCount = Math.max(...days.map(d => d.count), 5); // min scale 5

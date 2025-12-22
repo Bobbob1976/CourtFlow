@@ -36,7 +36,12 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
         try {
             const response = await fetch(`/api/admin/courts/status?clubId=${clubId}`);
             const data = await response.json();
-            setCourts(data.courts || []);
+            if (data && Array.isArray(data.courts)) {
+                setCourts(data.courts);
+            } else {
+                console.error("Invalid court data format", data);
+                setCourts([]);
+            }
         } catch (error) {
             console.error("Failed to fetch court status:", error);
         } finally {
