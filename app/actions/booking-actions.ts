@@ -51,7 +51,7 @@ export async function createPublicBooking(data: {
 
     if (error) {
         console.error("Booking Error:", error);
-        return { success: false, error: "Kon boeking niet plaatsen." };
+        return { success: false, error: `DB Error: ${error.message || error.details || 'Unknown'}` };
     }
 
     // 4. Insert Ledger Entry (Revenue)
