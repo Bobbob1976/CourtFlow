@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock, Users, Wrench, AlertCircle, Play, Pause, X } from "lucide-react";
+import { Clock, Users, Wrench, AlertCircle, Play, Pause, X, Calendar } from "lucide-react";
 
 interface Court {
     id: string;
@@ -25,7 +25,7 @@ interface Court {
     };
 }
 
-import { cancelBooking } from "@/app/actions/admin-actions";
+import { cancelBooking, moveBooking } from "@/app/actions/admin-actions";
 
 export default function VisualCourtGrid({ clubId }: { clubId: string }) {
     const [courts, setCourts] = useState<Court[]>([]);
@@ -78,6 +78,27 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
         } catch (err) {
             alert("Fout bij annuleren.");
             console.error(err);
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleMove = async (bookingId: string) => {
+        const newTime = prompt("Naar welke tijd wil je verplaatsen? (HH:mm)", "18:00");
+        if (!newTime) return;
+
+        // Voor MVP nemen we aan: verplaatsen binnen VANDAAG
+        const today = new Date().toISOString().split('T')[0];
+
+        setProcessing(true);
+        try {
+            await moveBooking(bookingId, newTime, today);
+            alert(`Succesvol verplaatst naar ${newTime}`);
+            setSelectedCourt(null);
+            fetchCourtStatus();
+        } catch (err: any) {
+            console.log(err);
+            alert("Fout bij verplaatsen: " + err.message);
         } finally {
             setProcessing(false);
         }
@@ -265,22 +286,25 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
 
                         <div className="space-y-3">
                             {selectedCourt.status === 'occupied' || selectedCourt.status === 'payment_pending' ? (
-                                <>
+                                <div className="grid grid-cols-1 gap-3">
                                     <button
-                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 px-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
-                                        onClick={() => alert("Feature komt binnenkort: Verplaatsen")}
+                                        onClick={() => selectedCourt.currentBooking && handleMove(selectedCourt.currentBooking.id)}
+                                        disabled={processing}
+                                        className="w-full bg-[#1e293b] hover:bg-[#334155] text-blue-400 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border border-blue-500/20 disabled:opacity-50"
                                     >
-                                        📅 Verplaatsen
+                                        <Calendar className="w-5 h-5" />
+                                        {processing ? 'Bezig...' : 'Verplaatsen'}
                                     </button>
 
                                     <button
                                         onClick={() => selectedCourt.currentBooking && handleCancel(selectedCourt.currentBooking.id)}
                                         disabled={processing}
-                                        className="w-full bg-white/5 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 py-3 px-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+                                        className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border border-red-500/20 disabled:opacity-50"
                                     >
-                                        {processing ? 'Bezig...' : '🚫 Boeking Annuleren'}
+                                        <X className="w-5 h-5" />
+                                        {processing ? 'Bezig...' : 'Boeking Annuleren'}
                                     </button>
-                                </>
+                                </div>
                             ) : (
                                 <button
                                     onClick={() => window.open(`/${clubId}`, '_blank')}
@@ -290,10 +314,9 @@ export default function VisualCourtGrid({ clubId }: { clubId: string }) {
                                 </button>
                             )}
 
-                            <div className="pt-4 border-t border-white/10 mt-4">
-                                <button
-                                    onClick={() => alert("Baan details beheer komt in de volgende update.")}
-                                    className="w-full text-gray-500 hover:text-white text-sm font-medium transition-colors"
+                            <div className="mt-6 pt-6 border-t border-white/10 text-center">
+                                <button className="text-gray-500 text-sm hover:text-white transition-colors"
+                                    onClick={() => alert(`Details:\nBooking ID: ${selectedCourt.currentBooking?.id || 'N/A'}\nSpelers: ${selectedCourt.currentBooking?.players.map(p => p.name).join(', ') || 'N/A'}`)}
                                 >
                                     Bekijk Baan Details
                                 </button>
