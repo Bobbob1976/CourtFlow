@@ -1,6 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
 import { format } from "date-fns";
-import { nl } from "date-fns/locale";
 import ForecastWidget from "@/components/admin/ForecastWidget";
 import SmartForecastWidget from "@/components/admin/SmartForecastWidget";
 import VisualCourtGrid from "@/components/admin/VisualCourtGrid";
@@ -8,33 +7,42 @@ import VisualCourtGrid from "@/components/admin/VisualCourtGrid";
 export default async function AdminDashboard() {
     const supabase = createClient();
 
-    // Fetch real data
-    const { data: { user } } = await supabase.auth.getUser();
+    // 1. Fetch Real Club Data
+    const { data: clubs } = await supabase.from('clubs').select('id, name').limit(1);
+    const club = clubs?.[0];
 
-    // Mock data for now where real data is complex to aggregate quickly in SQL
-    // In a real app, we'd have dedicated RPC functions for these stats
+    if (!club) return <div className="p-8 text-white">Laden... (Geen club gevonden)</div>;
+
+    // 2. Fetch Basic Stats (Real Revenue)
+    const { data: bookings } = await supabase
+        .from('bookings')
+        .select('total_cost')
+        .eq('club_id', club.id)
+        .is('cancelled_at', null);
+
+    const totalRevenue = bookings?.reduce((sum, b) => sum + (Number(b.total_cost) || 0), 0) || 0;
+
+    // Mock other stats for now (will implement later)
     const stats = [
-        { title: "Total Revenue", value: "€12,450", trend: "+12%", trendUp: true, sparkline: "blue" },
-        { title: "Active Members", value: "1,240", trend: "+5%", trendUp: true, sparkline: "green" },
-        { title: "Court Occupancy", value: "85%", trend: "-2%", trendUp: false, sparkline: "purple" },
-        { title: "Pending Actions", value: "12", trend: "Urgent", trendUp: false, sparkline: "red" },
-    ];
-
-    const courts = [
-        { name: "Court 1", status: "active", players: ["Mike", "Sarah", "Tom", "Lisa"], time: "00:45" },
-        { name: "Court 2", status: "active", players: ["John", "Doe"], time: "01:15" },
-        { name: "Court 3", status: "empty", players: [], time: "" },
-        { name: "Court 4", status: "maintenance", players: [], time: "" },
+        { title: "Totale Omzet", value: `€${totalRevenue.toLocaleString('nl-NL')}`, trend: "+12%", trendUp: true, sparkline: "blue" },
+        { title: "Actieve Leden", value: "15", trend: "+5%", trendUp: true, sparkline: "green" },
+        { title: "Baan Bezetting", value: "85%", trend: "-2%", trendUp: false, sparkline: "purple" },
+        { title: "Actie Punten", value: "3", trend: "Urgent", trendUp: false, sparkline: "red" },
     ];
 
     const recentActions = [
         { type: "Booking", desc: "Court 1 reserved by Mike", user: "Mike Johnson", time: "2 min ago", status: "resolved" },
         { type: "Payment", desc: "Failed transaction #492", user: "Sarah Connor", time: "15 min ago", status: "failed" },
-        { type: "System", desc: "High server load warning", user: "System", time: "1h ago", status: "warning" },
     ];
 
     return (
         <div className="space-y-8">
+            {/* Header */}
+            <div>
+                <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+                <p className="text-gray-400">Welkom terug bij {club.name}</p>
+            </div>
+
             {/* KPI Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, i) => (
@@ -49,35 +57,32 @@ export default async function AdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Smart Forecast Widget */}
                 <div className="lg:col-span-1">
-                    <SmartForecastWidget clubId="90f93d47-b438-427c-8b33-0597817c1d96" />
+                    <SmartForecastWidget clubId={club.id} />
                 </div>
 
                 {/* Visual Court Grid */}
                 <div className="lg:col-span-2">
-                    <h3 className="text-xl font-bold text-white mb-4">Live Court Status</h3>
-                    <VisualCourtGrid clubId="90f93d47-b438-427c-8b33-0597817c1d96" />
+                    <h3 className="text-xl font-bold text-white mb-4">Live Baan Status</h3>
+                    <VisualCourtGrid clubId={club.id} />
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Revenue Chart Placeholder */}
+                {/* Revenue Chart Placeholder -> Link to Financials */}
                 <div className="lg:col-span-2">
-                    <div className="bg-white/5 border border-white/5 rounded-2xl p-6 h-64 flex items-center justify-center relative overflow-hidden group">
+                    <div className="bg-white/5 border border-white/5 rounded-2xl p-6 h-64 flex items-center justify-center relative overflow-hidden group hover:border-[#C4FF0D]/50 transition-colors cursor-pointer">
+                        <a href="/admin/financials" className="absolute inset-0 z-20"></a>
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <div className="text-center z-10">
-                            <p className="text-gray-400 font-medium mb-2">Revenue Split (Padel vs Tennis)</p>
-                            <div className="flex items-end gap-2 h-32">
-                                <div className="w-8 bg-blue-500 rounded-t-lg h-[60%] animate-pulse"></div>
-                                <div className="w-8 bg-purple-500 rounded-t-lg h-[80%] animate-pulse delay-75"></div>
-                                <div className="w-8 bg-cyan-500 rounded-t-lg h-[40%] animate-pulse delay-150"></div>
-                            </div>
+                            <p className="text-gray-400 font-medium mb-2">Bekijk Gedetailleerd Financieel Rapport</p>
+                            <p className="text-3xl font-bold text-white">Naar Financials &rarr;</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Action Items */}
                 <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 flex flex-col">
-                    <h3 className="text-xl font-bold text-white mb-6">Action Items</h3>
+                    <h3 className="text-xl font-bold text-white mb-6">Recente Activiteit</h3>
                     <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-white/10">
                         {recentActions.map((action, i) => (
                             <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
@@ -93,9 +98,6 @@ export default async function AdminDashboard() {
                             </div>
                         ))}
                     </div>
-                    <button className="w-full mt-6 py-3 rounded-xl border border-white/10 text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
-                        View All Actions
-                    </button>
                 </div>
             </div>
         </div>
@@ -127,68 +129,5 @@ function KPICard({ title, value, trend, trendUp, sparkline }: any) {
                 </svg>
             </div>
         </div>
-    )
-}
-
-function CourtCard({ name, status, players, time }: any) {
-    const isMaintenance = status === 'maintenance';
-    const isActive = status === 'active';
-
-    return (
-        <div className={`p-4 rounded-lg border transition-all ${isActive ? 'bg-green-900/10 border-green-500/30 shadow-[0_0_10px_rgba(74,222,128,0.1)]' :
-            isMaintenance ? 'bg-red-900/10 border-red-500/30 opacity-70' :
-                'bg-white/5 border-white/5 opacity-50'
-            }`}>
-            <div className="flex justify-between items-center mb-3">
-                <span className="font-bold text-white text-sm">{name}</span>
-                <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : isMaintenance ? 'bg-red-500' : 'bg-gray-600'}`}></span>
-            </div>
-
-            {isActive ? (
-                <div className="space-y-2">
-                    <div className="flex -space-x-2 overflow-hidden">
-                        {players.map((p: string, i: number) => (
-                            <div key={i} className="inline-block h-6 w-6 rounded-full ring-2 ring-[#121212] bg-gray-600 flex items-center justify-center text-[10px] font-bold text-white" title={p}>
-                                {p[0]}
-                            </div>
-                        ))}
-                    </div>
-                    <div className="text-xs text-green-400 font-mono">{time}</div>
-                </div>
-            ) : isMaintenance ? (
-                <div className="flex items-center justify-center h-12 text-xs text-red-400 font-bold uppercase tracking-widest">
-                    Maintenance
-                </div>
-            ) : (
-                <div className="flex items-center justify-center h-12 text-xs text-gray-500 font-mono">
-                    Available
-                </div>
-            )}
-        </div>
-    )
-}
-
-function ActionRow({ type, desc, user, time, status }: any) {
-    const statusColors: any = {
-        failed: "text-red-400 bg-red-500/10 border-red-500/20",
-        warning: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
-        resolved: "text-green-400 bg-green-500/10 border-green-500/20",
-    };
-
-    return (
-        <tr className="hover:bg-white/5 transition-colors">
-            <td className="px-6 py-4 font-medium text-white">{type}</td>
-            <td className="px-6 py-4">{desc}</td>
-            <td className="px-6 py-4 text-gray-300">{user}</td>
-            <td className="px-6 py-4 font-mono text-xs">{time}</td>
-            <td className="px-6 py-4">
-                <span className={`text-xs font-bold px-2 py-1 rounded border ${statusColors[status]}`}>
-                    {status.toUpperCase()}
-                </span>
-            </td>
-            <td className="px-6 py-4 text-right">
-                <button className="text-blue-400 hover:text-white text-xs font-bold">RESOLVE</button>
-            </td>
-        </tr>
     )
 }
