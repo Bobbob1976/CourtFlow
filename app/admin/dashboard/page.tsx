@@ -1,7 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { format } from "date-fns";
 import ForecastWidget from "@/components/admin/ForecastWidget";
-import SmartForecastWidget from "@/components/admin/SmartForecastWidget";
 import VisualCourtGrid from "@/components/admin/VisualCourtGrid";
 
 export default async function AdminDashboard() {
@@ -53,18 +52,10 @@ export default async function AdminDashboard() {
             {/* AI Forecast Widget - KILLER FEATURE */}
             <ForecastWidget />
 
-            {/* Smart Forecast & Visual Court Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Smart Forecast Widget */}
-                <div className="lg:col-span-1">
-                    <SmartForecastWidget clubId={club.id} />
-                </div>
-
-                {/* Visual Court Grid */}
-                <div className="lg:col-span-2">
-                    <h3 className="text-xl font-bold text-white mb-4">Live Baan Status</h3>
-                    <VisualCourtGrid clubId={club.id} />
-                </div>
+            {/* Visual Court Grid - FULL WIDTH */}
+            <div>
+                <h3 className="text-xl font-bold text-white mb-4">Live Baan Status</h3>
+                <VisualCourtGrid clubId={club.id} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

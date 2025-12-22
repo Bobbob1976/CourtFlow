@@ -54,9 +54,13 @@ export async function GET(request: Request) {
             // Find a booking that is actively happening NOW on this court
             const activeBooking = bookings?.find((booking) => {
                 if (booking.court_id !== court.id) return false;
+                if (!booking.start_time) return false;
 
-                // Parse time
-                const [hours, minutes] = booking.start_time.split(":").map(Number);
+                // Parse time safely
+                const timeParts = booking.start_time.split(":");
+                if (timeParts.length < 2) return false;
+
+                const [hours, minutes] = timeParts.map(Number);
                 const bookingStart = new Date(now);
                 bookingStart.setHours(hours, minutes, 0, 0);
 
@@ -67,16 +71,23 @@ export async function GET(request: Request) {
             });
 
             if (activeBooking) {
-                // Calculate remaining time
-                const [hours, minutes] = activeBooking.start_time.split(":").map(Number);
-                const bookingStart = new Date(now);
-                bookingStart.setHours(hours, minutes, 0, 0);
-                const bookingEnd = addMinutes(bookingStart, activeBooking.duration || 60);
-                const remainingMinutes = differenceInMinutes(bookingEnd, now);
+                // Calculate remaining time safely
+                let remainingMinutes = 0;
+                let bookingEndStr = "??:??";
 
-                // Get player name
-                // @ts-ignore
-                const playerName = activeBooking.profiles?.full_name || activeBooking.profiles?.email || "Gast";
+                if (activeBooking.start_time) {
+                    const [hours, minutes] = activeBooking.start_time.split(":").map(Number);
+                    const bookingStart = new Date(now);
+                    bookingStart.setHours(hours, minutes, 0, 0);
+                    const bookingEnd = addMinutes(bookingStart, activeBooking.duration || 60);
+                    remainingMinutes = differenceInMinutes(bookingEnd, now);
+                    bookingEndStr = format(bookingEnd, "HH:mm");
+                }
+
+                // Get player name comfortably
+                // Handle array or object result from join
+                const profileData = Array.isArray(activeBooking.profiles) ? activeBooking.profiles[0] : activeBooking.profiles;
+                const playerName = profileData?.full_name || profileData?.email || "Gast";
 
                 // Check payment
                 let status = "occupied";
@@ -90,8 +101,8 @@ export async function GET(request: Request) {
                     status: status,
                     currentBooking: {
                         id: activeBooking.id,
-                        startTime: activeBooking.start_time.substring(0, 5),
-                        endTime: format(bookingEnd, "HH:mm"),
+                        startTime: activeBooking.start_time?.substring(0, 5) || "??:??",
+                        endTime: bookingEndStr,
                         remainingMinutes: Math.max(0, remainingMinutes),
                         players: [{ name: playerName }],
                         paymentStatus: activeBooking.payment_status
