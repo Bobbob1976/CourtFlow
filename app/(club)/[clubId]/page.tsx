@@ -23,11 +23,18 @@ export default function BookingPage() {
       const supabase = createClient();
 
       // 1. Get Club
-      const { data: clubData } = await supabase
-        .from('clubs')
-        .select('*')
-        .eq('subdomain', clubId)
-        .single();
+      // Check if clubId looks like a UUID
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(Array.isArray(clubId) ? clubId[0] : clubId);
+
+      let query = supabase.from('clubs').select('*');
+
+      if (isUuid) {
+        query = query.eq('id', clubId);
+      } else {
+        query = query.eq('subdomain', clubId);
+      }
+
+      const { data: clubData } = await query.single();
 
       if (clubData) {
         setClub(clubData);
