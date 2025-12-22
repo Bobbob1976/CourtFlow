@@ -1,122 +1,116 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
 
-// Force dynamic rendering (fixes Vercel deployment)
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+import { createClient } from "@/utils/supabase/server";
+import { NextResponse } from "next/server";
+import { format, addMinutes, differenceInMinutes, parseISO } from "date-fns";
+import { nl } from "date-fns/locale";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const clubId = searchParams.get("clubId");
+
+    if (!clubId) {
+        return NextResponse.json({ error: "Missing clubId" }, { status: 400 });
+    }
+
+    const supabase = createClient();
+
     try {
-        const { searchParams } = new URL(request.url);
-        const clubId = searchParams.get('clubId');
-
-        if (!clubId) {
-            return NextResponse.json({ error: 'Club ID required' }, { status: 400 });
-        }
-
-        const supabase = createClient();
-        const now = new Date();
-
-        // Get all courts for the club
+        // 1. Fetch all courts for this club
         const { data: courts, error: courtsError } = await supabase
-            .from('courts')
-            .select('*')
-            .eq('club_id', clubId)
-            .order('name');
+            .from("courts")
+            .select("id, name")
+            .eq("club_id", clubId)
+            .order("name");
 
-        if (courtsError) {
-            throw courtsError;
-        }
+        if (courtsError) throw courtsError;
 
-        // Get current bookings
-        const { data: bookings } = await supabase
-            .from('bookings')
+        // 2. Fetch Active Bookings (where NOW is between start_time and end_time)
+        // We use a broader range to catch all bookings for today to be safe, then filter in JS
+        // Or strictly check time overlap in SQL. Let's filter in JS for flexibility.
+        const now = new Date();
+        const startOfDay = new Date(now);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const { data: bookings, error: bookingsError } = await supabase
+            .from("bookings")
             .select(`
-        *,
-        user:user_profiles(full_name)
-      `)
-            .eq('club_id', clubId)
-            .eq('booking_date', now.toISOString().split('T')[0])
-            .is('cancelled_at', null);
+                id,
+                court_id,
+                date,
+                start_time,
+                duration,
+                payment_status,
+                user_id,
+                profiles:user_id ( full_name, email )
+            `)
+            .eq("club_id", clubId)
+            .eq("date", format(now, "yyyy-MM-dd")) // Only today
+            .is("cancelled_at", null);
 
-        // Get maintenance records
-        const { data: maintenance } = await supabase
-            .from('court_maintenance')
-            .select('*')
-            .lte('start_time', now.toISOString())
-            .or(`end_time.is.null,end_time.gte.${now.toISOString()}`);
+        if (bookingsError) throw bookingsError;
 
-        // Build court status
-        const courtStatus = courts?.map(court => {
-            // Check if in maintenance
-            const maintenanceRecord = maintenance?.find(m => m.court_id === court.id);
-            if (maintenanceRecord) {
-                return {
-                    id: court.id,
-                    name: court.name,
-                    status: 'maintenance',
-                    maintenanceInfo: {
-                        reason: maintenanceRecord.notes || 'Onderhoud',
-                        estimatedEnd: maintenanceRecord.end_time
-                            ? new Date(maintenanceRecord.end_time).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
-                            : 'Onbekend'
-                    }
-                };
-            }
+        // 3. Map status for each court
+        const courtStatusList = courts.map((court) => {
+            // Find a booking that is actively happening NOW on this court
+            const activeBooking = bookings?.find((booking) => {
+                if (booking.court_id !== court.id) return false;
 
-            // Check if currently occupied
-            const currentBooking = bookings?.find(b => {
-                if (b.court_id !== court.id) return false;
+                // Parse time
+                const [hours, minutes] = booking.start_time.split(":").map(Number);
+                const bookingStart = new Date(now);
+                bookingStart.setHours(hours, minutes, 0, 0);
 
-                const bookingStart = new Date(`${b.booking_date}T${b.start_time}`);
-                const bookingEnd = new Date(`${b.booking_date}T${b.end_time}`);
+                const bookingEnd = addMinutes(bookingStart, booking.duration || 60);
 
-                return now >= bookingStart && now <= bookingEnd;
+                // Check overlap
+                return now >= bookingStart && now < bookingEnd;
             });
 
-            if (currentBooking) {
-                const endTime = new Date(`${currentBooking.booking_date}T${currentBooking.end_time}`);
-                const remainingMs = endTime.getTime() - now.getTime();
-                const remainingMinutes = Math.max(0, Math.floor(remainingMs / 60000));
+            if (activeBooking) {
+                // Calculate remaining time
+                const [hours, minutes] = activeBooking.start_time.split(":").map(Number);
+                const bookingStart = new Date(now);
+                bookingStart.setHours(hours, minutes, 0, 0);
+                const bookingEnd = addMinutes(bookingStart, activeBooking.duration || 60);
+                const remainingMinutes = differenceInMinutes(bookingEnd, now);
+
+                // Get player name
+                // @ts-ignore
+                const playerName = activeBooking.profiles?.full_name || activeBooking.profiles?.email || "Gast";
+
+                // Check payment
+                let status = "occupied";
+                if (activeBooking.payment_status === "pending") {
+                    status = "payment_pending";
+                }
 
                 return {
                     id: court.id,
                     name: court.name,
-                    status: currentBooking.payment_status === 'pending' ? 'payment_pending' : 'occupied',
+                    status: status,
                     currentBooking: {
-                        id: currentBooking.id,
-                        startTime: currentBooking.start_time.slice(0, 5),
-                        endTime: currentBooking.end_time.slice(0, 5),
-                        remainingMinutes: remainingMinutes,
-                        players: [
-                            { name: currentBooking.user?.full_name || 'Speler 1' },
-                            ...Array(currentBooking.attendees - 1).fill(null).map((_, i) => ({
-                                name: `Speler ${i + 2}`
-                            }))
-                        ],
-                        paymentStatus: currentBooking.payment_status
+                        id: activeBooking.id,
+                        startTime: activeBooking.start_time.substring(0, 5),
+                        endTime: format(bookingEnd, "HH:mm"),
+                        remainingMinutes: Math.max(0, remainingMinutes),
+                        players: [{ name: playerName }],
+                        paymentStatus: activeBooking.payment_status
                     }
                 };
             }
 
-            // Available
+            // No active booking -> Available
             return {
                 id: court.id,
                 name: court.name,
-                status: 'available'
+                status: "available"
             };
-        }) || [];
-
-        return NextResponse.json({
-            courts: courtStatus,
-            timestamp: now.toISOString()
         });
 
-    } catch (error) {
-        console.error('Court status API error:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch court status' },
-            { status: 500 }
-        );
+        return NextResponse.json({ courts: courtStatusList });
+
+    } catch (error: any) {
+        console.error("Error fetching court status:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
