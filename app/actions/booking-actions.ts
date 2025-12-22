@@ -66,8 +66,9 @@ export async function createPublicBooking(data: {
         status: 'completed'
     });
 
-    revalidatePath(`/admin/dashboard`);
-    revalidatePath(`/${data.clubId}`);
+    revalidatePath(`/dashboard`);
+    // revalidatePath(`/bookings`); // Removed: Route does not exist
+    // revalidatePath(`/${data.clubId}`); // Optional: Only if you have ISR on the club page
 
     return { success: true, bookingId: booking.id };
 }
