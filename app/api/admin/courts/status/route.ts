@@ -41,7 +41,7 @@ export async function GET(request: Request) {
                 duration,
                 payment_status,
                 user_id,
-                profiles:user_id ( full_name, email )
+                user_profiles ( full_name )
             `)
             .eq("club_id", clubId)
             .eq("date", format(now, "yyyy-MM-dd")) // Only today
@@ -86,8 +86,9 @@ export async function GET(request: Request) {
 
                 // Get player name comfortably
                 // Handle array or object result from join
-                const profileData = Array.isArray(activeBooking.profiles) ? activeBooking.profiles[0] : activeBooking.profiles;
-                const playerName = profileData?.full_name || profileData?.email || "Gast";
+                // @ts-ignore
+                const profileData = Array.isArray(activeBooking.user_profiles) ? activeBooking.user_profiles[0] : activeBooking.user_profiles;
+                const playerName = profileData?.full_name || "Gast";
 
                 // Check payment
                 let status = "occupied";
