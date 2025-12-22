@@ -38,7 +38,7 @@ export async function GET(request: Request) {
                 court_id,
                 booking_date,
                 start_time,
-                duration,
+                end_time,
                 payment_status,
                 user_id,
                 user_profiles ( full_name )
@@ -54,17 +54,17 @@ export async function GET(request: Request) {
             // Find a booking that is actively happening NOW on this court
             const activeBooking = bookings?.find((booking) => {
                 if (booking.court_id !== court.id) return false;
-                if (!booking.start_time) return false;
+                if (!booking.start_time || !booking.end_time) return false;
 
-                // Parse time safely
-                const timeParts = booking.start_time.split(":");
-                if (timeParts.length < 2) return false;
+                // Parse times
+                const [startH, startM] = booking.start_time.split(":").map(Number);
+                const [endH, endM] = booking.end_time.split(":").map(Number);
 
-                const [hours, minutes] = timeParts.map(Number);
                 const bookingStart = new Date(now);
-                bookingStart.setHours(hours, minutes, 0, 0);
+                bookingStart.setHours(startH, startM, 0, 0);
 
-                const bookingEnd = addMinutes(bookingStart, booking.duration || 60);
+                const bookingEnd = new Date(now);
+                bookingEnd.setHours(endH, endM, 0, 0);
 
                 // Check overlap
                 return now >= bookingStart && now < bookingEnd;
@@ -73,15 +73,13 @@ export async function GET(request: Request) {
             if (activeBooking) {
                 // Calculate remaining time safely
                 let remainingMinutes = 0;
-                let bookingEndStr = "??:??";
+                let bookingEndStr = activeBooking.end_time?.substring(0, 5) || "??:??";
 
-                if (activeBooking.start_time) {
-                    const [hours, minutes] = activeBooking.start_time.split(":").map(Number);
-                    const bookingStart = new Date(now);
-                    bookingStart.setHours(hours, minutes, 0, 0);
-                    const bookingEnd = addMinutes(bookingStart, activeBooking.duration || 60);
+                if (activeBooking.end_time) {
+                    const [endH, endM] = activeBooking.end_time.split(":").map(Number);
+                    const bookingEnd = new Date(now);
+                    bookingEnd.setHours(endH, endM, 0, 0);
                     remainingMinutes = differenceInMinutes(bookingEnd, now);
-                    bookingEndStr = format(bookingEnd, "HH:mm");
                 }
 
                 // Get player name comfortably
