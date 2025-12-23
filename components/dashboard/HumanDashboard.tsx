@@ -285,9 +285,15 @@ export default function HumanDashboard() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 text-center hover:bg-white/10 transition-colors">
-                                    <p className="text-gray-400 mb-4">Geen sessies gepland</p>
-                                    <Link href="/demo-club" className="text-[#C4FF0D] font-bold hover:underline">Plan je eerste sessie →</Link>
+                                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 text-center hover:bg-white/10 transition-colors group">
+                                    <div className="w-16 h-16 bg-[#C4FF0D]/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                                        <span className="text-2xl">📅</span>
+                                    </div>
+                                    <h3 className="text-white font-bold mb-2">Geen aankomende sessie</h3>
+                                    <p className="text-gray-400 text-sm mb-6">Tijd om de baan op te gaan! Nodig je vrienden uit voor een potje.</p>
+                                    <Link href="/demo-club" className="inline-block px-6 py-3 bg-[#C4FF0D] text-[#0A1628] rounded-xl font-bold hover:scale-105 transition-transform">
+                                        + Nieuwe Boeking
+                                    </Link>
                                 </div>
                             )}
                         </div>
@@ -339,8 +345,12 @@ export default function HumanDashboard() {
                                         </div>
                                     )
                                 }) : (
-                                    <div className="p-8 text-center text-gray-500 text-sm">
-                                        Nog geen boekingen gevonden.
+                                    <div className="p-12 text-center text-gray-500 text-sm flex flex-col items-center justify-center">
+                                        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
+                                            🎾
+                                        </div>
+                                        <p>Nog geen wedstrijden gespeeld.</p>
+                                        <p className="text-xs mt-1">Je match history verschijnt hier.</p>
                                     </div>
                                 )}
                             </div>

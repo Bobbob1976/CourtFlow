@@ -85,7 +85,11 @@ export default function BookingDetailsPage({ params }: { params: { id: string } 
         window.open(url, '_blank');
     };
 
-    if (loading) return <div className="min-h-screen bg-[#0A1628] flex items-center justify-center text-white">Laden...</div>;
+    if (loading) return (
+        <div className="min-h-screen bg-[#0A1628] flex items-center justify-center text-white">
+            <div className="w-8 h-8 border-4 border-[#C4FF0D] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    );
     if (error) return <div className="min-h-screen bg-[#0A1628] flex items-center justify-center text-red-400">{error}</div>;
     if (!booking) return <div className="min-h-screen bg-[#0A1628] flex items-center justify-center text-white">Boeking niet gevonden.</div>;
 
@@ -148,8 +152,8 @@ export default function BookingDetailsPage({ params }: { params: { id: string } 
                                                 await removeParticipant(p.id, id);
                                                 window.location.reload();
                                             }
-                                        }} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                        }} className="text-red-400/50 hover:text-red-400 transition-colors p-3">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                         </button>
                                     </div>
                                 ))}
