@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 
 export default function ProfilePage() {
     const [user, setUser] = useState<any>(null);
@@ -14,18 +13,10 @@ export default function ProfilePage() {
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({
         full_name: '',
-        location: 'Amsterdam' // Default fallback
+        location: ''
     });
 
-    // Mock Stats Data
-    const statsData = [
-        { subject: 'Power', A: 120, fullMark: 150 },
-        { subject: 'Control', A: 98, fullMark: 150 },
-        { subject: 'Speed', A: 86, fullMark: 150 },
-        { subject: 'Stamina', A: 99, fullMark: 150 },
-        { subject: 'Tactics', A: 85, fullMark: 150 },
-        { subject: 'Mental', A: 65, fullMark: 150 },
-    ];
+    const [matches, setMatches] = useState<any[]>([]);
 
     useEffect(() => {
         async function load() {
@@ -33,12 +24,25 @@ export default function ProfilePage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 setUser(user);
+
+                // 1. Profile
                 const { data } = await supabase.from('user_profiles').select('*').eq('id', user.id).single();
                 setProfile(data);
                 setEditForm({
                     full_name: data?.full_name || user.email?.split('@')[0] || '',
-                    location: 'Amsterdam'
+                    location: data?.location || 'Amsterdam'
                 });
+
+                // 2. Matches
+                const { data: matchData } = await supabase
+                    .from('bookings')
+                    .select('*, match_results(*)')
+                    .eq('user_id', user.id)
+                    .not('match_results', 'is', null)
+                    .order('booking_date', { ascending: false })
+                    .limit(10);
+
+                setMatches(matchData || []);
             }
             setLoading(false);
         }
@@ -46,16 +50,59 @@ export default function ProfilePage() {
     }, []);
 
     const handleSave = async () => {
-        // Hier zouden we naar Supabase schrijven
-        // Voor nu simuleren we de update lokaal
-        setProfile({ ...profile, full_name: editForm.full_name });
-        setIsEditing(false);
+        const supabase = createClient();
+        const { error } = await supabase
+            .from('user_profiles')
+            .update({
+                full_name: editForm.full_name,
+                location: editForm.location
+            })
+            .eq('id', user.id);
 
-        // Feedback aan gebruiker
-        alert('Profiel bijgewerkt! ✅');
+        if (error) {
+            alert('Fout bij opslaan: ' + error.message);
+        } else {
+            setProfile({ ...profile, ...editForm });
+            setIsEditing(false);
+        }
+    };
+
+    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!event.target.files || event.target.files.length === 0) return;
+
+        const file = event.target.files[0];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const supabase = createClient();
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, file);
+
+        if (uploadError) {
+            alert('Upload mislukt: ' + uploadError.message);
+            return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+        // Update profile
+        await supabase.from('user_profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
+
+        // Update local state
+        setProfile({ ...profile, avatar_url: publicUrl });
     };
 
     if (loading) return <div className="min-h-screen bg-[#0A1628] flex items-center justify-center text-white">Laden...</div>;
+
+    // Calc Stats
+    const totalMatches = matches.length;
+    const wins = matches.filter(m => {
+        const res = Array.isArray(m.match_results) ? m.match_results[0] : m.match_results;
+        return res?.winner_team === 'team1'; // Assumption: user is team1 owner
+    }).length;
+    const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 
     return (
         <div className="min-h-screen bg-[#0A1628] text-white pb-20 font-sans">
@@ -65,18 +112,29 @@ export default function ProfilePage() {
                 <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8">
 
                     {/* AVATAR */}
-                    <div className="relative group cursor-pointer">
+                    <div className="relative group cursor-pointer" onClick={() => isEditing && document.getElementById('avatar-upload')?.click()}>
                         <div className="w-32 h-32 rounded-full border-4 border-[#C4FF0D] overflow-hidden shadow-[0_0_30px_rgba(196,255,13,0.3)]">
-                            <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-4xl font-bold">
-                                {user?.email?.[0].toUpperCase() || 'U'}
-                            </div>
+                            {profile?.avatar_url ? (
+                                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-4xl font-bold">
+                                    {user?.email?.[0].toUpperCase() || 'U'}
+                                </div>
+                            )}
                         </div>
                         {isEditing && (
                             <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
-                                <span className="text-xs font-bold">📷 Change</span>
+                                <span className="text-xs font-bold text-white">📷 Wijzig</span>
                             </div>
                         )}
                         {!isEditing && <div className="absolute bottom-0 right-0 bg-[#C4FF0D] text-[#0A1628] text-xs font-bold px-3 py-1 rounded-full border border-[#0A1628]">ELITE</div>}
+                        <input
+                            type="file"
+                            id="avatar-upload"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleAvatarUpload}
+                        />
                     </div>
 
                     {/* INFO & EDIT FORM */}
@@ -149,53 +207,22 @@ export default function ProfilePage() {
 
                     <div className="ml-auto flex gap-6 text-center">
                         <div>
-                            <div className="text-2xl font-bold text-white">42</div>
+                            <div className="text-2xl font-bold text-white">{totalMatches}</div>
                             <div className="text-xs text-gray-500 uppercase font-bold">Matches</div>
                         </div>
                         <div>
-                            <div className="text-2xl font-bold text-[#C4FF0D]">68%</div>
+                            <div className="text-2xl font-bold text-[#C4FF0D]">{winRate}%</div>
                             <div className="text-xs text-gray-500 uppercase font-bold">Win Rate</div>
                         </div>
                         <div>
-                            <div className="text-2xl font-bold text-blue-400">4.2</div>
+                            <div className="text-2xl font-bold text-blue-400">{profile?.ntrp || '4.2'}</div>
                             <div className="text-xs text-gray-500 uppercase font-bold">NTRP</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 mt-12 grid grid-cols-1 md:grid-cols-2 gap-12">
-
-                {/* LEFT: CHART (The Ego Trigger) */}
-                <div className="bg-[#132338] rounded-3xl p-8 border border-white/5 relative overflow-hidden shadow-lg">
-                    <div className="absolute top-0 right-0 p-4 opacity-5">
-                        <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                    </div>
-                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                        <span className="text-[#C4FF0D]">⚡</span> Spelersprofiel
-                    </h2>
-
-                    <div className="h-[300px] w-full flex items-center justify-center -ml-4">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={statsData}>
-                                <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#9CA3AF', fontSize: 12, fontWeight: 'bold' }} />
-                                <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
-                                <Radar
-                                    name="Mike"
-                                    dataKey="A"
-                                    stroke="#C4FF0D"
-                                    strokeWidth={3}
-                                    fill="#C4FF0D"
-                                    fillOpacity={0.3}
-                                />
-                            </RadarChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="text-center mt-4">
-                        <p className="text-sm text-gray-400">Jouw speelstijl is <span className="text-white font-bold">Aanvallend</span></p>
-                    </div>
-                </div>
+            <div className="max-w-3xl mx-auto px-4 mt-12 space-y-8">
 
                 {/* RIGHT: HISTORY & BADGES */}
                 <div className="space-y-8">
@@ -205,32 +232,53 @@ export default function ProfilePage() {
                         <div className="flex justify-between items-end mb-4">
                             <div>
                                 <div className="text-gray-400 text-xs font-bold uppercase mb-1">Huidig Level</div>
-                                <div className="text-3xl font-extrabold text-white">Level 4</div>
+                                <div className="text-3xl font-extrabold text-white">Level {profile?.level || 1}</div>
                             </div>
-                            <div className="text-[#C4FF0D] font-bold">1200 / 1500 XP</div>
+                            <div className="text-[#C4FF0D] font-bold">{(profile?.xp || 0) % 500} / 500 XP</div>
                         </div>
                         <div className="w-full bg-gray-700 h-3 rounded-full overflow-hidden">
-                            <div className="bg-gradient-to-r from-blue-500 to-purple-500 w-[80%] h-full"></div>
+                            <div
+                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-1000"
+                                style={{ width: `${((profile?.xp || 0) % 500) / 5}%` }}
+                            ></div>
                         </div>
-                        <p className="text-xs text-gray-500 mt-3">Nog 3 matches winnen voor Level 5!</p>
+                        <p className="text-xs text-gray-500 mt-3">
+                            Nog {500 - ((profile?.xp || 0) % 500)} XP voor Level {(profile?.level || 1) + 1}!
+                        </p>
                     </div>
 
                     {/* Recent Activity */}
                     <div>
-                        <h3 className="text-gray-400 font-bold uppercase text-sm mb-4">Laatste Matches</h3>
+                        <h3 className="text-gray-400 font-bold uppercase text-sm mb-4">Laatste Matches ({matches.length})</h3>
                         <div className="space-y-4">
-                            {[1, 2, 3].map((_, i) => (
-                                <div key={i} className="flex items-center justify-between bg-[#132338] p-4 rounded-2xl border border-white/5 hover:border-[#C4FF0D]/30 transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-2 h-12 rounded-full ${i === 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                        <div>
-                                            <div className="font-bold text-white">{i === 0 ? 'Winst' : 'Verlies'} vs Mark</div>
-                                            <div className="text-xs text-gray-500">Gisteren • 6-4, 6-3</div>
+                            {matches.length > 0 ? matches.map((m, i) => {
+                                // Safe Access
+                                const res = Array.isArray(m.match_results) ? m.match_results[0] : m.match_results;
+                                if (!res) return null; // Skip if no result
+
+                                const isWin = res.winner_team === 'team1';
+                                const xpGain = isWin ? 150 : (res.winner_team === 'draw' ? 75 : 50);
+                                const date = new Date(m.booking_date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+
+                                // Format score
+                                let score = `${res.set1_team1}-${res.set1_team2}`;
+                                if (res.set2_team1 || res.set2_team2) score += `, ${res.set2_team1}-${res.set2_team2}`;
+
+                                return (
+                                    <div key={m.id} className="flex items-center justify-between bg-[#132338] p-4 rounded-2xl border border-white/5 hover:border-[#C4FF0D]/30 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-2 h-12 rounded-full ${isWin ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                            <div>
+                                                <div className="font-bold text-white">{isWin ? 'Winst' : 'Verlies'} vs Tegenstander</div>
+                                                <div className="text-xs text-gray-500 capitalize">{date} • {score}</div>
+                                            </div>
                                         </div>
+                                        <div className="font-bold text-gray-300">+{xpGain} XP</div>
                                     </div>
-                                    <div className="font-bold text-gray-300">+150 XP</div>
-                                </div>
-                            ))}
+                                )
+                            }) : (
+                                <div className="text-gray-500 text-sm">Nog geen matches gespeeld.</div>
+                            )}
                         </div>
                     </div>
 

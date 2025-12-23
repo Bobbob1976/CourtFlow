@@ -44,7 +44,9 @@ export async function GET(request: NextRequest) {
                 end_time,
                 payment_status,
                 user_id,
-                user_profiles(full_name)
+                booking_type,
+                title,
+                user_profiles(full_name, email, avatar_url, location)
             `)
             .eq("club_id", clubId)
             .eq("booking_date", dateStr) // Use NL date!
@@ -96,18 +98,23 @@ export async function GET(request: NextRequest) {
                 name: court.name,
                 status: "available",
                 currentBooking: null,
-                nextBooking: null
+                nextBooking: null,
+                maintenanceInfo: null
             };
 
             if (nextBooking) {
                 // @ts-ignore
                 const nextProfile = Array.isArray(nextBooking.user_profiles) ? nextBooking.user_profiles[0] : nextBooking.user_profiles;
-                const nextName = nextProfile?.full_name || "Gast";
+                // Improved display name logic: Name -> Email Username -> 'Gast'
+                const nextName = nextProfile?.full_name || nextProfile?.email?.split('@')[0] || "Gast";
 
                 courtData.nextBooking = {
                     id: nextBooking.id, // Add ID so we can manage it
                     startTime: nextBooking.start_time?.substring(0, 5) || "??:??",
-                    player: nextName
+                    player: nextBooking.booking_type === 'maintenance' ? (nextBooking.title || "Onderhoud") : nextName,
+                    email: nextProfile?.email,
+                    avatar: nextProfile?.avatar_url,
+                    type: nextBooking.booking_type // Pass type
                 };
             }
 
@@ -118,19 +125,23 @@ export async function GET(request: NextRequest) {
 
                 if (activeBooking.end_time) {
                     const [endH, endM] = activeBooking.end_time.split(":").map(Number);
-                    const endMinutes = endH * 60 + endM;
-                    remainingMinutes = endMinutes - currentMinutes;
+                    const endMinutesDay = endH * 60 + endM;
+                    remainingMinutes = Math.max(0, endMinutesDay - currentMinutes);
                 }
 
-                // Get player name comfortably
-                // Handle array or object result from join
                 // @ts-ignore
-                const profileData = Array.isArray(activeBooking.user_profiles) ? activeBooking.user_profiles[0] : activeBooking.user_profiles;
-                const playerName = profileData?.full_name || "Gast";
+                const profile = Array.isArray(activeBooking.user_profiles) ? activeBooking.user_profiles[0] : activeBooking.user_profiles;
+                const playerName = profile?.full_name || profile?.email?.split('@')[0] || "Gast";
 
-                // Check payment
+                // Check payment & type
                 let status = "occupied";
-                if (activeBooking.payment_status === "pending") {
+                if (activeBooking.booking_type === 'maintenance') {
+                    status = "maintenance";
+                    courtData.maintenanceInfo = {
+                        reason: activeBooking.title || "Gepland Onderhoud",
+                        estimatedEnd: bookingEndStr
+                    };
+                } else if (activeBooking.payment_status === "pending") {
                     status = "payment_pending";
                 }
 
@@ -140,8 +151,14 @@ export async function GET(request: NextRequest) {
                     startTime: activeBooking.start_time?.substring(0, 5) || "??:??",
                     endTime: bookingEndStr,
                     remainingMinutes: Math.max(0, remainingMinutes),
-                    players: [{ name: playerName }],
-                    paymentStatus: activeBooking.payment_status
+                    players: [{
+                        name: playerName,
+                        email: profile?.email,
+                        avatar: profile?.avatar_url,
+                        location: profile?.location
+                    }],
+                    paymentStatus: activeBooking.payment_status,
+                    type: activeBooking.booking_type
                 };
             }
 

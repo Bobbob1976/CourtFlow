@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { getIncomingInvites, respondToInvite } from '@/app/actions/participant-actions';
 import Link from 'next/link';
 import ScoreSubmissionModal from '@/components/match/ScoreSubmissionModal';
 
@@ -19,7 +20,9 @@ const WeatherBadge = () => (
 export default function HumanDashboard() {
     const [user, setUser] = useState<any>(null);
     const [bookings, setBookings] = useState<any[]>([]);
+    const [invites, setInvites] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [quickBookOpen, setQuickBookOpen] = useState(false);
     const [selectedBookingForScore, setSelectedBookingForScore] = useState<any>(null);
 
     // Mock data for "Live" features
@@ -31,30 +34,63 @@ export default function HumanDashboard() {
 
     useEffect(() => {
         async function load() {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setUser(user);
+            try {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    // Fetch Profile for XP/Level
+                    const { data: profile } = await supabase
+                        .from('user_profiles')
+                        .select('xp, level')
+                        .eq('id', user.id)
+                        .single();
 
-                // Fetch real bookings
-                const { data: bookingsData } = await supabase
-                    .from('bookings')
-                    .select('*, court:courts(name), club:clubs(name)')
-                    .eq('user_id', user.id)
-                    // We halen ALLES op, zodat we historie zien
-                    .order('booking_date', { ascending: false })
-                    .limit(10);
+                    setUser({ ...user, profile });
 
-                setBookings(bookingsData || []);
+                    // Fetch real bookings with Match Results
+                    const { data: bookingsData } = await supabase
+                        .from('bookings')
+                        .select(`
+                            *, 
+                            court:courts(name), 
+                            club:clubs(name),
+                            match_results(set1_team1, set1_team2, set2_team1, set2_team2, set3_team1, set3_team2, winner_team)
+                        `)
+                        .eq('user_id', user.id)
+                        // We halen ALLES op, zodat we historische data zien
+                        .order('booking_date', { ascending: false })
+                        .limit(20);
+
+                    setBookings(bookingsData || []);
+
+                    // Fetch Invites
+                    const myInvites = await getIncomingInvites();
+                    setInvites(myInvites || []);
+                }
+            } catch (error) {
+                console.error("Error loading dashboard", error);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         }
         load();
     }, []);
 
+    // Helper to format score
+    const formatScore = (result: any) => {
+        if (!result) return "";
+        let score = `${result.set1_team1}-${result.set1_team2}`;
+        if (result.set2_team1 || result.set2_team2) score += ` ${result.set2_team1}-${result.set2_team2}`;
+        if (result.set3_team1 || result.set3_team2) score += ` ${result.set3_team1}-${result.set3_team2}`;
+        return score;
+    };
+
     // Helper to check if a booking is in the past
     const isPast = (booking: any) => {
-        const endDateTime = new Date(`${booking.booking_date}T${booking.start_time}`); // rough check
+        // Use end_time if available, or just date
+        const dateStr = booking.booking_date;
+        const timeStr = booking.end_time || booking.start_time || "23:59";
+        const endDateTime = new Date(`${dateStr}T${timeStr}`);
         return endDateTime < new Date();
     };
 
@@ -136,9 +172,24 @@ export default function HumanDashboard() {
                                 <span className="flex items-center gap-1 text-sm font-bold text-orange-400">
                                     🔥 3 Dagen Streak
                                 </span>
-                                <span className="flex items-center gap-1 text-sm font-bold text-blue-400">
-                                    🏆 Level 4 Elite
-                                </span>
+                                <div className="flex flex-col">
+                                    <span className="flex items-center gap-1 text-sm font-bold text-blue-400">
+                                        🏆 Level {user?.profile?.level || 1}
+                                    </span>
+                                    {/* XP Bar */}
+                                    <div className="w-32 h-1.5 bg-blue-500/20 rounded-full mt-1 overflow-hidden relative group">
+                                        <div
+                                            className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out"
+                                            style={{
+                                                width: `${Math.min(100, Math.max(0, (((user?.profile?.xp || 0) - ((user?.profile?.level || 1) - 1) * 500) / 500) * 100))}%`
+                                            }}
+                                        />
+                                        {/* Tooltip on hover (simple title for now) */}
+                                    </div>
+                                    <span className="text-[10px] text-gray-500 font-mono mt-0.5">
+                                        {(user?.profile?.xp || 0) % 500} / 500 XP
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -153,6 +204,50 @@ export default function HumanDashboard() {
 
                     {/* LINKER KOLOM: AGENDA & BOOKINGS */}
                     <div className="lg:col-span-2 space-y-8">
+
+                        {/* INVITES NOTIFICATION */}
+                        {invites.length > 0 && (
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-3xl p-6 border border-white/10 shadow-lg relative overflow-hidden">
+                                <div className="relative z-10">
+                                    <h3 className="font-bold text-white text-lg mb-2 flex items-center gap-2">
+                                        <span className="animate-pulse">🔔</span> Je bent uitgenodigd!
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {invites.map((inv: any) => (
+                                            <div key={inv.id} className="bg-white/10 rounded-xl p-3 flex items-center justify-between">
+                                                <div>
+                                                    <div className="font-bold text-white">{inv.booking.club?.name}</div>
+                                                    <div className="text-xs text-blue-200">
+                                                        {new Date(inv.booking.booking_date).toLocaleDateString()} • {inv.booking.start_time.slice(0, 5)}
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={async () => {
+                                                            await respondToInvite(inv.id, true);
+                                                            setInvites(invites.filter(i => i.id !== inv.id));
+                                                            window.location.reload();
+                                                        }}
+                                                        className="px-3 py-1 bg-[#C4FF0D] text-[#0A1628] rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                                                    >
+                                                        Accepteren
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            await respondToInvite(inv.id, false);
+                                                            setInvites(invites.filter(i => i.id !== inv.id));
+                                                        }}
+                                                        className="px-3 py-1 bg-white/10 text-white rounded-lg text-xs font-bold hover:bg-white/20 transition-colors"
+                                                    >
+                                                        Afwijzen
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Volgende Sessie Card (Groot) */}
                         <div>
@@ -199,6 +294,9 @@ export default function HumanDashboard() {
                             <div className="bg-[#132338] rounded-3xl border border-white/5 overflow-hidden">
                                 {bookings.length > 0 ? bookings.map((booking, i) => {
                                     const past = isPast(booking);
+                                    // @ts-ignore
+                                    const matchResult = Array.isArray(booking.match_results) ? booking.match_results[0] : booking.match_results;
+
                                     return (
                                         <div key={booking.id} className="p-4 border-b border-white/5 flex items-center hover:bg-white/5 transition-colors">
                                             <div className={`w-16 text-center border-r border-white/10 pr-4 mr-4 ${past ? 'opacity-50' : ''}`}>
@@ -215,12 +313,19 @@ export default function HumanDashboard() {
                                             </div>
                                             <div className="ml-auto">
                                                 {past ? (
-                                                    <button
-                                                        onClick={() => setSelectedBookingForScore(booking)}
-                                                        className="px-3 py-1 rounded-full bg-[#C4FF0D]/10 text-xs font-bold text-[#C4FF0D] border border-[#C4FF0D]/20 hover:bg-[#C4FF0D] hover:text-black transition-colors"
-                                                    >
-                                                        Uitslag Invoeren
-                                                    </button>
+                                                    matchResult ? (
+                                                        <div className="text-right">
+                                                            <div className="text-[10px] uppercase font-bold text-gray-400">Uitslag</div>
+                                                            <div className="text-[#C4FF0D] font-bold font-mono">{formatScore(matchResult)}</div>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => setSelectedBookingForScore(booking)}
+                                                            className="px-3 py-1 rounded-full bg-[#C4FF0D]/10 text-xs font-bold text-[#C4FF0D] border border-[#C4FF0D]/20 hover:bg-[#C4FF0D] hover:text-black transition-colors"
+                                                        >
+                                                            Uitslag Invoeren
+                                                        </button>
+                                                    )
                                                 ) : (
                                                     <Link href={`/bookings/${booking.id}`} className="px-3 py-1 rounded-full bg-white/5 text-xs font-bold text-gray-300 hover:text-white">
                                                         Details
@@ -257,9 +362,9 @@ export default function HumanDashboard() {
                                 ))}
                                 <div className="w-10 h-10 rounded-full bg-gray-700 border-2 border-[#132338] flex items-center justify-center text-xs font-bold text-white">+9</div>
                             </div>
-                            <button className="w-full py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold text-white transition-colors">
+                            <Link href="/community" className="block w-full text-center py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold text-white transition-colors">
                                 Zoek een Buddy
-                            </button>
+                            </Link>
                         </div>
 
                         {/* Snelle Acties */}
@@ -303,6 +408,6 @@ export default function HumanDashboard() {
 
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

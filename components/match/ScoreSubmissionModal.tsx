@@ -1,47 +1,59 @@
 "use client";
 
 import { useState } from "react";
-import { submitMatchScore } from "@/app/actions/match-actions";
+import { saveMatchResult } from "@/app/actions/match-actions";
 
 interface ScoreSubmissionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    booking: any; // Type this properly in real app
+    booking: any;
 }
 
 export default function ScoreSubmissionModal({ isOpen, onClose, booking }: ScoreSubmissionModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    if (!isOpen) return null;
+    // Mock players (visual only)
 
-    // Mock players for now if not in booking
-    // In real app, booking should have 'players' or 'attendees'
-    const team1_p1 = booking.user_id; // Booker
-    const team1_p2 = "player_2_id"; // Placeholder
-    const team2_p1 = "player_3_id"; // Placeholder
-    const team2_p2 = "player_4_id"; // Placeholder
+    if (!isOpen) return null;
 
     async function handleSubmit(formData: FormData) {
         setIsSubmitting(true);
         setError(null);
 
-        // Append hidden fields
-        formData.append("bookingId", booking.id);
-        formData.append("team1_p1", team1_p1);
-        formData.append("team1_p2", team1_p2);
-        formData.append("team2_p1", team2_p1);
-        formData.append("team2_p2", team2_p2);
+        // Parse scores
+        const s1t1 = Number(formData.get('s1_t1') || 0);
+        const s1t2 = Number(formData.get('s1_t2') || 0);
+        const s2t1 = Number(formData.get('s2_t1') || 0);
+        const s2t2 = Number(formData.get('s2_t2') || 0);
+        const s3t1 = Number(formData.get('s3_t1') || 0);
+        const s3t2 = Number(formData.get('s3_t2') || 0);
 
-        const result = await submitMatchScore({}, formData);
+        // Determine Winner Logic (Sets won)
+        let t1Sets = 0;
+        let t2Sets = 0;
 
-        if (result.error) {
-            setError(result.error);
+        if (s1t1 > s1t2) t1Sets++; else if (s1t2 > s1t1) t2Sets++;
+        if (s2t1 > s2t2) t1Sets++; else if (s2t2 > s2t1) t2Sets++;
+        if (s3t1 > s3t2) t1Sets++; else if (s3t2 > s3t1) t2Sets++;
+
+        let winner: 'team1' | 'team2' | 'draw' = 'draw';
+        if (t1Sets > t2Sets) winner = 'team1';
+        if (t2Sets > t1Sets) winner = 'team2';
+
+        try {
+            await saveMatchResult(booking.id, {
+                set1: [s1t1, s1t2],
+                set2: [s2t1, s2t2],
+                set3: [s3t1, s3t2],
+                winner
+            });
+            onClose(); // Close modal
+            // In real app: Trigger confetti or XP animation here
+        } catch (e: any) {
+            setError(e.message || "Fout bij opslaan uitslag.");
+        } finally {
             setIsSubmitting(false);
-        } else {
-            // Success
-            onClose();
-            // Ideally show success toast
         }
     }
 

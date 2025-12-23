@@ -86,6 +86,10 @@ export async function createPublicBooking(data: {
         status: 'completed'
     });
 
+    // 6. Send Email (Placeholder)
+    console.log("💌 [DEMO] Email confirmation simulated for:", user.email);
+    // await sendBookingConfirmation(user.email, booking);
+
     revalidatePath(`/dashboard`);
 
     return { success: true, bookingId: booking.id };

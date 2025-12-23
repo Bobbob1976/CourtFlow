@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { logout } from "@/lib/auth-actions";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { createClient } from "@/utils/supabase/client";
 
 interface NavbarClientProps {
     user: any;
@@ -16,11 +17,33 @@ export default function NavbarClient({ user, userRole }: NavbarClientProps) {
     const [mounted, setMounted] = useState(false);
     const { t, locale, setLocale } = useLanguage();
 
-    const isAdmin = userRole === 'admin' || userRole === 'club_owner' || userRole === 'super_admin';
+    const [fetchedRole, setFetchedRole] = useState<string | null>(userRole || null);
+    const [debugError, setDebugError] = useState<string | null>(null);
 
     useEffect(() => {
         setMounted(true);
-    }, []);
+
+        async function verifyRole() {
+            if (!user) return;
+            const supabase = createClient();
+            const { data, error } = await supabase
+                .from('user_profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+
+            if (error) {
+                console.error("Role Fetch Error:", error);
+                if (!userRole) setDebugError("Role Error");
+            } else if (data) {
+                setFetchedRole(data.role);
+            }
+        }
+        verifyRole();
+    }, [user]);
+
+    const activeRole = fetchedRole || userRole;
+    const isAdmin = activeRole === 'admin' || activeRole === 'club_owner' || activeRole === 'super_admin';
 
     const toggleLanguage = () => {
         setLocale(locale === 'nl' ? 'en' : 'nl');
