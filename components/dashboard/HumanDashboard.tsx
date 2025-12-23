@@ -22,6 +22,7 @@ export default function HumanDashboard() {
     const [bookings, setBookings] = useState<any[]>([]);
     const [invites, setInvites] = useState<any[]>([]);
     const [images, setImages] = useState<string[]>([]);
+    const [heroImage, setHeroImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [quickBookOpen, setQuickBookOpen] = useState(false);
     const [selectedBookingForScore, setSelectedBookingForScore] = useState<any>(null);
@@ -77,6 +78,17 @@ export default function HumanDashboard() {
 
                     if (imgData) {
                         setImages(imgData.map(i => i.image_url));
+                    }
+
+                    // Fetch Club Banner
+                    const { data: clubData } = await supabase
+                        .from('clubs')
+                        .select('banner_url')
+                        .limit(1)
+                        .single();
+
+                    if (clubData?.banner_url) {
+                        setHeroImage(clubData.banner_url);
                     }
                 }
             } catch (error) {
@@ -150,7 +162,7 @@ export default function HumanDashboard() {
             <div className="absolute inset-0 z-0 h-[50vh]">
                 <div className="absolute inset-0 bg-gradient-to-b from-[#0A1628]/30 via-[#0A1628]/90 to-[#0A1628] z-10" />
                 <img
-                    src="https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=2070&auto=format&fit=crop"
+                    src={heroImage || "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=2070&auto=format&fit=crop"}
                     alt="Club background"
                     className="w-full h-full object-cover opacity-50"
                 />
