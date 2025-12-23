@@ -23,6 +23,7 @@ export default function HumanDashboard() {
     const [invites, setInvites] = useState<any[]>([]);
     const [images, setImages] = useState<string[]>([]);
     const [heroImage, setHeroImage] = useState<string | null>(null);
+    const [heroPosition, setHeroPosition] = useState<number>(20);
     const [loading, setLoading] = useState(true);
     const [quickBookOpen, setQuickBookOpen] = useState(false);
     const [selectedBookingForScore, setSelectedBookingForScore] = useState<any>(null);
@@ -83,12 +84,15 @@ export default function HumanDashboard() {
                     // Fetch Club Banner
                     const { data: clubData } = await supabase
                         .from('clubs')
-                        .select('banner_url')
+                        .select('banner_url, banner_position_y')
                         .limit(1)
                         .single();
 
                     if (clubData?.banner_url) {
                         setHeroImage(clubData.banner_url);
+                    }
+                    if (clubData?.banner_position_y !== undefined && clubData?.banner_position_y !== null) {
+                        setHeroPosition(clubData.banner_position_y);
                     }
                 }
             } catch (error) {
@@ -164,7 +168,8 @@ export default function HumanDashboard() {
                 <img
                     src={heroImage || "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?q=80&w=2070&auto=format&fit=crop"}
                     alt="Club background"
-                    className="w-full h-full object-cover opacity-50"
+                    className="w-full h-full object-cover opacity-50 transition-all duration-700"
+                    style={{ objectPosition: `center ${heroPosition}%` }}
                 />
             </div>
 

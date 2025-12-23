@@ -21,3 +21,22 @@ export async function setClubBranding(clubId: string, type: 'banner' | 'logo', i
     revalidatePath('/admin/images');
     return { success: true };
 }
+
+export async function updateBannerPosition(clubId: string, positionY: number) {
+    const supabase = createClient();
+
+    // Validate range 0-100
+    const pos = Math.max(0, Math.min(100, positionY));
+
+    const { error } = await supabase
+        .from('clubs')
+        .update({ banner_position_y: pos })
+        .eq('id', clubId);
+
+    if (error) throw error;
+
+    revalidatePath('/admin/settings');
+    revalidatePath('/admin/images');
+    revalidatePath('/dashboard'); // Update dashboard immediately
+    return { success: true };
+}
