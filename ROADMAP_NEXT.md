@@ -1,9 +1,9 @@
 # Roadmap CourtFlow - Volgende Sessie
 
 ## 1. Social & Community (Verdieping)
-- [ ] **Leaderboards:** Voeg een tabblad 'Ranglijst' toe aan de Community pagina. Toon de Top 10 spelers op basis van XP en Level.
-- [ ] **Chat/Berichten:** Maak de "Bericht" knop op de Community pagina werkend.
-    - *Optie A:* Eenvoudige `mailto:` link.
+- [x] **Leaderboards:** Voeg een tabblad 'Ranglijst' toe aan de Community pagina. Toon de Top 10 spelers op basis van XP en Level.
+- [x] **Chat/Berichten:** Maak de "Bericht" knop op de Community pagina werkend.
+    - [x] *Optie A:* Eenvoudige `mailto:` link.
     - *Optie B:* Intern chatsysteem (tabel `messages`).
 - [ ] **Profiel Zichtbaarheid:** Zorg dat privacy instellingen gerespecteerd worden.
 
