@@ -3,6 +3,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
+import { sendEmail } from "@/utils/mail";
+
 export async function invitePlayer(bookingId: string, emailStr: string) {
     const email = emailStr.toLowerCase(); // Force lowercase
     const supabase = createClient();
@@ -11,22 +13,22 @@ export async function invitePlayer(bookingId: string, emailStr: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Niet ingelogd");
 
-    // 2. Check if booking belongs to user
+    // 2. Check if booking belongs to user AND fetch details for email
     const { data: booking } = await supabase
         .from('bookings')
-        .select('user_id')
+        .select(`
+            user_id, 
+            booking_date, 
+            start_time,
+            club:clubs(name),
+            court:courts(name)
+        `)
         .eq('id', bookingId)
         .single();
 
     if (!booking || booking.user_id !== user.id) {
         throw new Error("Je mag alleen mensen uitnodigen voor je eigen boekingen.");
     }
-
-    // 3. Find if invited user exists in our system
-    // We search profiles (assuming we have access, or use RPC if restricted)
-    // For now we'll try to find a profile via email if public/accessible, 
-    // otherwise we just store the email.
-    // NOTE: Default RLS often hides other emails. We'll store email in 'email' column regardless.
 
     // Check if already invited
     const { data: existing } = await supabase
@@ -40,9 +42,7 @@ export async function invitePlayer(bookingId: string, emailStr: string) {
         return { success: false, message: "Deze speler is al uitgenodigd." };
     }
 
-    // 4. Try to find user_id (Optional enhancement: needs admin privilege or specific RPC to search users by email securely)
-    // For MVP we just insert the email. If the user logs in with that email later, we can link them up.
-
+    // Insert participant
     const { error } = await supabase.from('booking_participants').insert({
         booking_id: bookingId,
         email: email,
@@ -53,6 +53,39 @@ export async function invitePlayer(bookingId: string, emailStr: string) {
     if (error) {
         console.error("Invite error:", error);
         throw new Error("Kon speler niet uitnodigen.");
+    }
+
+    // 4. Send Email
+    // Note: We don't await this to fail the request if email fails, 
+    // but we do log it. Or we await it to be sure. Let's await to be safe.
+    try {
+        const clubName = (booking.club as any)?.name || 'De Club';
+        const courtName = (booking.court as any)?.name || 'De Baan';
+
+        await sendEmail({
+            to: email,
+            subject: `Uitnodiging voor Padel bij ${clubName}`,
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                    <h2 style="color: #0A1628;">🎾 Je bent uitgenodigd!</h2>
+                    <p>Hoi,</p>
+                    <p>Je bent uitgenodigd voor een potje padel bij <strong>${clubName}</strong>.</p>
+                    
+                    <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>📅 Datum:</strong> ${new Date(booking.booking_date).toLocaleDateString()}</p>
+                        <p style="margin: 5px 0;"><strong>⏰ Tijd:</strong> ${booking.start_time.slice(0, 5)}</p>
+                        <p style="margin: 5px 0;"><strong>📍 Baan:</strong> ${courtName}</p>
+                    </div>
+
+                    <a href="https://courtflow.nl/dashboard" style="display: inline-block; background-color: #C4FF0D; color: #000; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px;">
+                        Accepteren op Dashboard
+                    </a>
+                </div>
+            `
+        });
+    } catch (err) {
+        console.error("Failed to send email:", err);
+        // Don't throw logic error, just log it. The invite exists in DB.
     }
 
     revalidatePath(`/bookings/${bookingId}`);

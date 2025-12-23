@@ -14,10 +14,10 @@
 - [x] **Export:** Knop om boekingen te exporteren naar CSV/Excel.
 
 ## 3. Communicatie (E-mail)
-- [ ] **Provider Setup:** Integratie met **Resend** (of SendGrid).
+- [x] **Provider Setup:** Integratie met **Resend** (of SendGrid).
 - [ ] **Triggers:**
     - Bevestigingsmail bij boeking.
-    - Uitnodigingsmail naar vrienden ("Je bent uitgenodigd voor een potje!").
+    - [x] Uitnodigingsmail naar vrienden ("Je bent uitgenodigd voor een potje!").
     - Notificatie bij nieuwe match resultaten.
 
 ## 4. Polish & UX

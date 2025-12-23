@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from "@/utils/supabase/server";
+import { sendEmail } from "@/utils/mail";
 import { revalidatePath } from "next/cache";
 
 export async function createPublicBooking(data: {
@@ -86,9 +87,48 @@ export async function createPublicBooking(data: {
         status: 'completed'
     });
 
-    // 6. Send Email (Placeholder)
-    console.log("💌 [DEMO] Email confirmation simulated for:", user.email);
-    // await sendBookingConfirmation(user.email, booking);
+    // 6. Fetch details for email
+    const { data: details } = await supabase
+        .from('bookings')
+        .select(`
+            club:clubs(name),
+            court:courts(name)
+        `)
+        .eq('id', booking.id)
+        .single();
+
+    // 7. Send Email
+    if (user.email) {
+        try {
+            const clubName = (details?.club as any)?.name || 'De Club';
+            const courtName = (details?.court as any)?.name || 'De Baan';
+
+            await sendEmail({
+                to: user.email,
+                subject: `Bevestiging: Je boeking bij ${clubName}`,
+                html: `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                        <h2 style="color: #0A1628;">✅ Boeking Bevestigd!</h2>
+                        <p>Hoi,</p>
+                        <p>Bedankt voor je boeking bij <strong>${clubName}</strong>. Hier zijn de details:</p>
+                        
+                        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                            <p style="margin: 5px 0;"><strong>📅 Datum:</strong> ${new Date(data.date).toLocaleDateString()}</p>
+                            <p style="margin: 5px 0;"><strong>⏰ Tijd:</strong> ${data.startTime}</p>
+                            <p style="margin: 5px 0;"><strong>📍 Baan:</strong> ${courtName}</p>
+                            <p style="margin: 5px 0;"><strong>💰 Prijs:</strong> €${data.price}</p>
+                        </div>
+
+                        <a href="https://courtflow.nl/dashboard" style="display: inline-block; background-color: #0A1628; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px;">
+                            Naar mijn Dashboard
+                        </a>
+                    </div>
+                `
+            });
+        } catch (e) {
+            console.error("Mail send failed", e);
+        }
+    }
 
     revalidatePath(`/dashboard`);
 
