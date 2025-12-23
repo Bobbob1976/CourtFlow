@@ -367,7 +367,7 @@ export default function HumanDashboard() {
                                 <div className="w-10 h-10 rounded-full bg-gray-700 border-2 border-[#132338] flex items-center justify-center text-xs font-bold text-white">+9</div>
                             </div>
                             <Link href="/community" className="block w-full text-center py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold text-white transition-colors">
-                                Community & Ranglijst
+                                🏆 Community & Ranglijst
                             </Link>
                         </div>
 
