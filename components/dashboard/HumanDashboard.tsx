@@ -224,9 +224,13 @@ export default function HumanDashboard() {
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={async () => {
-                                                            await respondToInvite(inv.id, true);
-                                                            setInvites(invites.filter(i => i.id !== inv.id));
-                                                            window.location.reload();
+                                                            try {
+                                                                await respondToInvite(inv.id, true);
+                                                                setInvites(invites.filter(i => i.id !== inv.id));
+                                                                window.location.reload();
+                                                            } catch (err: any) {
+                                                                alert("Fout bij accepteren: " + err.message);
+                                                            }
                                                         }}
                                                         className="px-3 py-1 bg-[#C4FF0D] text-[#0A1628] rounded-lg text-xs font-bold hover:scale-105 transition-transform"
                                                     >
