@@ -4,6 +4,8 @@ import { nl } from "date-fns/locale";
 import TaxBreakdownTable from "@/components/admin/TaxBreakdownTable";
 import RevenueChart from "@/components/admin/RevenueChart";
 
+import ExportButton from "@/components/admin/ExportButton";
+
 export default async function AdminFinancialsPage() {
     const supabase = createClient();
 
@@ -13,12 +15,23 @@ export default async function AdminFinancialsPage() {
 
     if (!club) return <div className="p-8 text-white">Geen club data gevonden.</div>;
 
-    // 2. Fetch bookings to calculate revenue
+    // 2. Fetch bookings to calculate revenue (Enriched with user info for Export)
     const { data: bookings } = await supabase
         .from("bookings")
-        .select("total_cost, payment_status, cancelled_at, created_at, booking_date")
+        .select(`
+            id,
+            total_cost, 
+            payment_status, 
+            cancelled_at, 
+            booking_date, 
+            created_at,
+            start_time,
+            court:courts(name),
+            user_profiles:user_id(full_name, email)
+        `)
         .eq('club_id', club.id)
-        .is('cancelled_at', null);
+        .is('cancelled_at', null)
+        .order('booking_date', { ascending: false });
 
     // 3. Fetch ledger entries
     const { data: entries } = await supabase
@@ -52,9 +65,7 @@ export default async function AdminFinancialsPage() {
                     <h1 className="text-3xl font-bold text-white mb-1">Financieel Overzicht</h1>
                     <p className="text-gray-400 text-sm">Real-time inzicht voor {club.name}</p>
                 </div>
-                <button className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl text-sm font-bold transition-transform hover:scale-105 shadow-lg shadow-blue-600/20 flex items-center gap-2">
-                    <span>📥</span> Download Rapport
-                </button>
+                <ExportButton data={bookings || []} filename={`courtflow_export_${new Date().toISOString().split('T')[0]}.csv`} />
             </div>
 
             {/* Summary Cards */}

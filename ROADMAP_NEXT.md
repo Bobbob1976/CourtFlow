@@ -8,10 +8,10 @@
 - [ ] **Profiel Zichtbaarheid:** Zorg dat privacy instellingen gerespecteerd worden.
 
 ## 2. Admin & Financiën
-- [ ] **Financieel Dashboard:** Bouw een nieuwe pagina `/admin/finance`.
+- [x] **Financieel Dashboard:** Bouw een nieuwe pagina `/admin/finance`.
     - Grafieken: Omzet per maand/week.
     - Statistieken: Bezettingsgraad van de banen (Piekuren).
-- [ ] **Export:** Knop om boekingen te exporteren naar CSV/Excel.
+- [x] **Export:** Knop om boekingen te exporteren naar CSV/Excel.
 
 ## 3. Communicatie (E-mail)
 - [ ] **Provider Setup:** Integratie met **Resend** (of SendGrid).

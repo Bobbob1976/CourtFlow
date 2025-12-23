@@ -3,7 +3,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function invitePlayer(bookingId: string, email: string) {
+export async function invitePlayer(bookingId: string, emailStr: string) {
+    const email = emailStr.toLowerCase(); // Force lowercase
     const supabase = createClient();
 
     // 1. Auth check
