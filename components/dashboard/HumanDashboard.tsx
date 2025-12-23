@@ -21,6 +21,7 @@ export default function HumanDashboard() {
     const [user, setUser] = useState<any>(null);
     const [bookings, setBookings] = useState<any[]>([]);
     const [invites, setInvites] = useState<any[]>([]);
+    const [images, setImages] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [quickBookOpen, setQuickBookOpen] = useState(false);
     const [selectedBookingForScore, setSelectedBookingForScore] = useState<any>(null);
@@ -66,6 +67,17 @@ export default function HumanDashboard() {
                     // Fetch Invites
                     const myInvites = await getIncomingInvites();
                     setInvites(myInvites || []);
+
+                    // Fetch Images
+                    const { data: imgData } = await supabase
+                        .from('club_images')
+                        .select('image_url')
+                        .eq('image_type', 'booking')
+                        .eq('is_active', true);
+
+                    if (imgData) {
+                        setImages(imgData.map(i => i.image_url));
+                    }
                 }
             } catch (error) {
                 console.error("Error loading dashboard", error);
@@ -259,7 +271,7 @@ export default function HumanDashboard() {
                             {nextSession ? (
                                 <div className="relative overflow-hidden rounded-3xl border border-white/10 group cursor-pointer">
                                     <img
-                                        src="https://images.unsplash.com/photo-1624653697960-aa228c2e633d?q=80&w=2670" // Real Padel Action
+                                        src={images.length > 0 ? images[0] : "https://images.unsplash.com/photo-1624653697960-aa228c2e633d?q=80&w=2670"}
                                         className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
                                         alt="Padel Match"
                                     />
