@@ -6,10 +6,11 @@ import { saveMatchResult } from "@/app/actions/match-actions";
 interface ScoreSubmissionModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSuccess?: () => void;
     booking: any;
 }
 
-export default function ScoreSubmissionModal({ isOpen, onClose, booking }: ScoreSubmissionModalProps) {
+export default function ScoreSubmissionModal({ isOpen, onClose, onSuccess, booking }: ScoreSubmissionModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +50,7 @@ export default function ScoreSubmissionModal({ isOpen, onClose, booking }: Score
                 winner
             });
             onClose(); // Close modal
+            if (onSuccess) onSuccess();
             // In real app: Trigger confetti or XP animation here
         } catch (e: any) {
             setError(e.message || "Fout bij opslaan uitslag.");

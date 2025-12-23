@@ -141,6 +141,7 @@ export default function HumanDashboard() {
                 <ScoreSubmissionModal
                     isOpen={!!selectedBookingForScore}
                     onClose={() => setSelectedBookingForScore(null)}
+                    onSuccess={() => window.location.reload()}
                     booking={selectedBookingForScore}
                 />
             )}
