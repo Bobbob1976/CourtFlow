@@ -140,6 +140,11 @@ export default function ClubImagesClient({ clubId, clubName, initialBannerUrl, i
                                 Als je uploads niet ziet, check of 'Club ID' hierboven overeenkomt met de entry in je 'clubs' tabel in Supabase.
                                 Check ook de 'club_images' tabel of er rijen zijn met ditzelfde club_id.
                             </p>
+                            <div className="mt-4 pt-4 border-t border-green-500/20">
+                                <p className="font-bold mb-1">Huidige Banner Config:</p>
+                                <p className="break-all"><strong>URL:</strong> {bannerUrl || 'Geen banner ingesteld'}</p>
+                                <p><strong>Positie Y:</strong> {bannerPos}%</p>
+                            </div>
                         </div>
                     </details>
                 </div>
